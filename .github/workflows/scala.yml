@@ -5,6 +5,13 @@ on:
     branches: [develop, "release/*"]
   pull_request:
     branches: ["*"]
+    paths:
+      - "build.sbt"
+      - "distribution/**/*"
+      - "engine/**/*"
+      - "project/**/*"
+      - "test/**/*"
+      - "tools/**/*"
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
