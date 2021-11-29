@@ -21,6 +21,7 @@ use ensogl::display;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::NodeInserter;
+use ensogl::system::web::StyleSetter;
 use std::rc::Rc;
 use wasm_bindgen::closure::Closure;
 use web_sys::HtmlDivElement;
@@ -115,6 +116,7 @@ impl Model {
     ) -> DomSymbol {
         let root = web::create_div();
         root.set_class_name(css_class::TEMPLATES_VIEW_ROOT);
+        root.set_style_or_warn("pointer-events", "auto", logger);
 
         let container = Self::create_content_container();
         container.append_or_warn(&side_menu.root_dom, logger);
