@@ -35,10 +35,13 @@ use crate::derive_iterator::IsMut;
 /// The iterators will:
 /// * for structs: go over each field that declared type is same as the struct's last type
 ///   parameter.
-/// * enums: delegate to current constructor's nested value's iterator.
+/// * for enums:
+///   * delegate to nested value's iterator for enum-like variants,
+///   * skip any unit variants.
+///    
 ///
-/// Enums are required to use only a single element tuple-like variant. This
-/// limitation should be lifted in the future.
+/// Enums are required to be composed from unit variants or single-element-tuple-like variants only.
+/// This limitation may be relaxed in the future.
 ///
 /// Any dependent type stored in struct, tuple or wrapped in enum should have
 /// dependency only in its last type parameter. All dependent types that are not

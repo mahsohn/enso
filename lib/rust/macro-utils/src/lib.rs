@@ -9,6 +9,7 @@ use proc_macro2::TokenTree;
 use quote::quote;
 use std::iter::FromIterator;
 use syn::visit::Visit;
+use syn::GenericParam;
 use syn::WhereClause;
 use syn::WherePredicate;
 
@@ -230,16 +231,30 @@ pub fn type_matches(ty: &syn::Type, target_param: &syn::GenericParam) -> bool {
     type_matches_repr(ty, &repr(target_param))
 }
 
-/// Does type depends on the given type parameter.
-pub fn type_depends_on(ty: &syn::Type, target_param: &syn::GenericParam) -> bool {
-    let target_param = repr(target_param);
-    let relevant_types = gather_all_types(ty);
-    relevant_types.iter().any(|ty| repr(ty) == target_param)
+/// Entity that can possibly dependent on a generic type parameter.
+pub trait TypeDependent {
+    /// Does this construct depend on a given generic type parameter.
+    fn depends_on(&self, target_param: &syn::GenericParam) -> bool;
 }
 
-/// Does enum variant depend on the given type parameter.
-pub fn variant_depends_on(var: &syn::Variant, target_param: &syn::GenericParam) -> bool {
-    var.fields.iter().any(|field| type_depends_on(&field.ty, target_param))
+impl TypeDependent for syn::Type {
+    fn depends_on(&self, target_param: &GenericParam) -> bool {
+        let target_param = repr(target_param);
+        let relevant_types = gather_all_types(self);
+        relevant_types.iter().any(|ty| repr(ty) == target_param)
+    }
+}
+
+impl TypeDependent for syn::Variant {
+    fn depends_on(&self, target_param: &GenericParam) -> bool {
+        self.fields.iter().any(|field| field.depends_on(target_param))
+    }
+}
+
+impl TypeDependent for syn::Field {
+    fn depends_on(&self, target_param: &GenericParam) -> bool {
+        self.ty.depends_on(target_param)
+    }
 }
 
 

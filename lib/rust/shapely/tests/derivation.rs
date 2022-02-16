@@ -110,6 +110,7 @@ pub enum Foo<U, T> {
     Con1(PairUV<U, T>),
     Con2(PairTT<T>),
     Con3(Unrecognized),
+    Con4,
 }
 
 #[test]

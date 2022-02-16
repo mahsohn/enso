@@ -4,12 +4,11 @@ use boolinator::Boolinator;
 use enso_macro_utils::field_ident_token;
 use enso_macro_utils::fields_list;
 use enso_macro_utils::ty_path_type_args;
-use enso_macro_utils::type_depends_on;
 use enso_macro_utils::type_matches;
-use enso_macro_utils::variant_depends_on;
+use enso_macro_utils::TypeDependent;
 use inflector::Inflector;
 use itertools::Itertools;
-
+use syn::Fields;
 
 
 // =============
@@ -69,7 +68,7 @@ impl<'t> DependentValue<'t> {
         value: TokenStream,
         target_param: &'t syn::GenericParam,
     ) -> Option<DependentValue<'t>> {
-        if type_depends_on(ty, target_param) {
+        if ty.depends_on(target_param) {
             Some(DependentValue { ty, value, target_param, through_ref: false })
         } else {
             None
@@ -151,14 +150,14 @@ impl<'t> DependentValue<'t> {
         // Last and only last type argument is dependent.
         for non_last_segment in type_args {
             assert!(
-                !type_depends_on(non_last_segment, self.target_param),
+                !non_last_segment.depends_on(self.target_param),
                 "Type {} has non-last argument {} that depends on {}",
                 repr(ty_path),
                 repr(non_last_segment),
                 repr(self.target_param)
             );
         }
-        assert!(type_depends_on(last_arg, self.target_param));
+        assert!(last_arg.depends_on(self.target_param));
         last_arg
     }
 
@@ -260,17 +259,30 @@ impl DerivingIterator<'_> {
         // `IntoIterator` implementation. Otherwise, use an empty iterator.
         let arms = data.variants.iter().map(|var| {
             let con = &var.ident;
-            let iter = if variant_depends_on(var, target_param) {
-                quote!(elem.into_iter())
-            } else {
-                quote!(std::iter::empty())
-            };
-            quote!(#ident::#con(elem) => Box::new(#iter))
+            match &var.fields {
+                Fields::Named(_fields) => {
+                    unimplemented!(
+                        "Iterator deriving for struct-like enum variants is not yet supported."
+                    )
+                }
+                Fields::Unnamed(_) => {
+                    let iter = if var.depends_on(target_param) {
+                        quote!(elem.into_iter())
+                    } else {
+                        quote!(std::iter::empty())
+                    };
+                    quote!(#ident::#con(elem) => Box::new(#iter))
+                }
+                Fields::Unit => {
+                    quote!(#ident::#con => Box::new(std::iter::empty()))
+                }
+            }
         });
 
         // match t {
         //     Foo::Con1(elem) => Box::new(elem.into_iter()),
         //     Foo::Con2(elem) => Box::new(std::iter::empty()),
+        //     Foo::Con3       => Box::new(std::iter::empty()),
         // }
         let iter_body = quote!( match t {  #(#arms,)*  } );
         OutputParts { iterator_tydefs, iter_body, iterator_params }
@@ -433,4 +445,5 @@ pub fn derive(input: proc_macro::TokenStream, is_mut: IsMut) -> proc_macro::Toke
 // pub enum Foo<T> {
 //     Con1(Bar<T>),
 //     Con2(Baz),
+//     Con3,
 // }
