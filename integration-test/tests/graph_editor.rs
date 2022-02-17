@@ -30,3 +30,43 @@ async fn create_new_project_and_add_nodes() {
         graph_editor.model.nodes.get_cloned_ref(&added_node_id).expect("Added node is not added");
     assert_eq!(added_node.view.expression.value().to_string(), "");
 }
+
+#[wasm_bindgen_test]
+async fn debug_mode() {
+    let test = IntegrationTestOnNewProject::setup().await;
+    let project = test.project_view();
+    let graph_editor = test.graph_editor();
+
+    assert!(!graph_editor.debug_mode.value());
+
+    // Turning On
+    let expect_mode = project.debug_mode.next_event();
+    let expect_popup_message = project.debug_mode_popup().label().show.next_event();
+    project.enable_debug_mode.emit(());
+    assert!(expect_mode.expect());
+    let message = expect_popup_message.expect();
+    assert!(
+        message.contains("Debug Mode enabled"),
+        "Message \"{}\" does not mention enabling Debug mode",
+        message
+    );
+    assert!(
+        message.contains(enso_gui::view::debug_mode_popup::DEBUG_MODE_SHORTCUT),
+        "Message \"{}\" does not inform about shortcut to turn mode off",
+        message
+    );
+    assert!(graph_editor.debug_mode.value());
+
+    // Turning Off
+    let expect_mode = project.debug_mode.next_event();
+    let expect_popup_message = project.debug_mode_popup().label().show.next_event();
+    project.disable_debug_mode.emit(());
+    assert!(!expect_mode.expect());
+    let message = expect_popup_message.expect();
+    assert!(
+        message.contains("Debug Mode disabled"),
+        "Message \"{}\" does not mention disabling of debug mode",
+        message
+    );
+    assert!(!graph_editor.debug_mode.value());
+}
