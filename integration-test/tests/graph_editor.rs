@@ -4,22 +4,12 @@ use enso_web::sleep;
 use ensogl::display::navigation::navigator::ZoomEvent;
 use std::time::Duration;
 
-
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
 async fn create_new_project_and_add_nodes() {
-    let test = IntegrationTest::setup().await;
-    let ide = &test.ide;
-    let project = ide.presenter.view().project();
-    let graph_editor = project.graph();
-    let controller = ide.presenter.controller();
-    let project_management =
-        controller.manage_projects().expect("Cannot access Managing Project API");
-
-    let expect_prompt = project.show_prompt.next_event();
-    project_management.create_new_project(None).await.expect("Failed to create new project");
-    expect_prompt.await;
+    let test = IntegrationTestOnNewProject::setup().await;
+    let graph_editor = test.graph_editor();
 
     assert_eq!(graph_editor.model.nodes.all.len(), 2);
     let expect_node_added = graph_editor.node_added.next_event();
