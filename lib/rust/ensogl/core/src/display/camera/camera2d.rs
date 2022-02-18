@@ -8,6 +8,7 @@ use crate::data::dirty;
 use crate::data::dirty::traits::*;
 use crate::display;
 use crate::display::scene::Scene;
+use crate::frp;
 
 use nalgebra::Perspective3;
 
@@ -151,6 +152,16 @@ impl Default for Matrix {
 // === Camera2dData ===
 // ====================
 
+/// Frp outputs of the Camera2d.
+#[derive(Debug, Clone, CloneRef)]
+pub struct Frp {
+    network: frp::Network,
+    /// Camera position.
+    pub position: frp::Source<Vector3<f32>>,
+    /// Camera zoom factor.
+    pub zoom: frp::Source<f32>,
+}
+
 /// Function used to return the updated screen dimensions.
 pub trait ScreenUpdateFn = callback::CallbackMut1Fn<Vector2<f32>>;
 
@@ -170,6 +181,7 @@ struct Camera2dData {
     dirty:                  Dirty,
     zoom_update_registry:   callback::Registry1<f32>,
     screen_update_registry: callback::Registry1<Vector2<f32>>,
+    frp: Frp,
 }
 
 type ProjectionDirty = dirty::SharedBool<()>;
@@ -190,7 +202,18 @@ impl Camera2dData {
         display_object.set_on_updated(f_!(dirty.transform.set()));
         display_object.mod_position(|p| p.z = 1.0);
         dirty.projection.set();
+        let network = frp::Network::new("Camera2d");
+        frp::extend! { network
+            frp_position <- source();
+            frp_zoom <- source();
+        }
+        let frp = Frp {
+            network,
+            position: frp_position,
+            zoom: frp_zoom,
+        };
         Self {
+            frp,
             display_object,
             screen,
             zoom,
@@ -267,6 +290,8 @@ impl Camera2dData {
             self.matrix.view_projection = self.matrix.projection * self.matrix.view;
             let zoom = self.zoom;
             self.zoom_update_registry.run_all(&zoom);
+            self.frp.position.emit(self.display_object.position());
+            self.frp.zoom.emit(zoom);
         }
         changed
     }
@@ -416,6 +441,10 @@ impl Camera2d {
 
 #[allow(missing_docs)]
 impl Camera2d {
+    pub fn frp(&self) -> Frp {
+        self.data.borrow().frp.clone_ref()
+    }
+
     pub fn clipping(&self) -> Clipping {
         self.data.borrow().clipping
     }
