@@ -1,8 +1,6 @@
 use enso_integration_test::prelude::*;
 
-use enso_web::sleep;
-use ensogl::display::navigation::navigator::ZoomEvent;
-use std::time::Duration;
+use ordered_float::OrderedFloat;
 
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
@@ -64,51 +62,25 @@ async fn debug_mode() {
 }
 
 #[wasm_bindgen_test]
-async fn zooming() {
+async fn adding_node_with_add_node_button() {
     let test = IntegrationTestOnNewProject::setup().await;
     let project = test.project_view();
     let graph_editor = test.graph_editor();
-    let camera = test.ide.ensogl_app.display.scene().layers.main.camera();
-    let navigator = &graph_editor.model.navigator;
 
-    let zoom_on_center = |amount: f32| ZoomEvent { focus: Vector2(0.0, 0.0), amount };
-    let acceptable_range = 0.999..1.001;
-    let zoom_duration_ms = Duration::from_millis(1000);
+    let add_node_button = &graph_editor.model.add_node_button;
+    let node_added = graph_editor.node_added.next_event();
+    
+    let nodes_and_positions = graph_editor.model.nodes.all.keys().into_iter().flat_map(|id| graph_editor.model.get_node_position(id).map(|pos| (id, pos)));
+    let mut nodes_sorted_by_y_axis = nodes_and_positions.sorted_by_key(|(_, pos)| OrderedFloat(pos.y));
+    let (_, bottom_most_pos) = nodes_sorted_by_y_axis.next().expect("Default project does not contain any nodes");
 
-    // Without debug mode
-    navigator.emit_zoom_event(zoom_on_center(-1.0));
-    sleep(zoom_duration_ms).await;
-    DEBUG!(camera.zoom());
-    assert!(
-        acceptable_range.contains(&camera.zoom()),
-        "Camera zoom {} must be near 1.0",
-        camera.zoom()
-    );
-    navigator.emit_zoom_event(zoom_on_center(1.0));
-    sleep(zoom_duration_ms).await;
-    DEBUG!(camera.zoom());
-    assert!(camera.zoom() < 1.0, "Camera zoom {} must be less than 1.0", camera.zoom());
-    navigator.emit_zoom_event(zoom_on_center(-2.0));
-    sleep(zoom_duration_ms).await;
-    DEBUG!(camera.zoom());
-    assert!(
-        acceptable_range.contains(&camera.zoom()),
-        "Camera zoom {} must be near 1.0",
-        camera.zoom()
-    );
+    add_node_button.click();
 
-    // With debug mode
-    project.enable_debug_mode();
-    navigator.emit_zoom_event(zoom_on_center(-1.0));
-    sleep(zoom_duration_ms).await;
-    DEBUG!(camera.zoom());
-    assert!(camera.zoom() > 1.0, "Camera zoom {} must be greater than 1.0", camera.zoom());
-    navigator.emit_zoom_event(zoom_on_center(5.0));
-    sleep(zoom_duration_ms).await;
-    DEBUG!(camera.zoom());
-    assert!(camera.zoom() < 1.0, "Camera zoom {} must be less than 1.0", camera.zoom());
-    navigator.emit_zoom_event(zoom_on_center(-5.0));
-    sleep(zoom_duration_ms).await;
-    DEBUG!(camera.zoom());
-    assert!(camera.zoom() > 1.0, "Camera zoom {} must be greater than 1.0", camera.zoom());
+    let (node_id, node_source) = node_added.expect();
+    assert!(node_source.is_none());
+    let node_position = graph_editor.model.get_node_position(node_id).expect("Node was not added");
+    // Node is created below the bottom-most one
+    assert!(node_position.y < bottom_most_pos.y, "Expected that {node_position} < {bottom_most_pos}");
+
+    assert_eq!(graph_editor.model.nodes.last_selected(), Some(node_id));
 }
