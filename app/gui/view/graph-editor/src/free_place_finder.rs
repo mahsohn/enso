@@ -96,6 +96,7 @@ impl OccupiedArea {
             (None, Some(y)) => y,
             _ => default(),
         };
+        DEBUG!("Boundary intersection: {starting_point} {direction} {dir_factor}");
         starting_point + direction * dir_factor
     }
 }

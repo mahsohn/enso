@@ -1,3 +1,4 @@
+use enso_gui::view::graph_editor::NodeSource;
 use enso_integration_test::prelude::*;
 
 use ordered_float::OrderedFloat;
@@ -82,5 +83,25 @@ async fn adding_node_with_add_node_button() {
     // Node is created below the bottom-most one
     assert!(node_position.y < bottom_most_pos.y, "Expected that {node_position} < {bottom_most_pos}");
 
-    assert_eq!(graph_editor.model.nodes.last_selected(), Some(node_id));
+    graph_editor.model.nodes.deselect_all();
+    graph_editor.model.nodes.select(node_id);
+    
+    let node_added = graph_editor.node_added.next_event();
+    add_node_button.click();
+
+    let (node_id2, node_source) = node_added.expect();
+    assert_eq!(node_source, Some(NodeSource{ node: node_id}));
+
+    let camera = test.ide.ensogl_app.display.scene().layers.main.camera();
+
+    camera.mod_position_xy(|pos| pos + Vector2(1000.0, 1000.0));
+
+    graph_editor.model.nodes.deselect_all();
+    let node_added = graph_editor.node_added.next_event();
+    add_node_button.click();
+    let (node_id3, node_source) = node_added.expect();
+    
+    let node_position = graph_editor.model.get_node_position(node_id3).expect("Node was not added");
+    let center_of_screen = test.ide.ensogl_app.display.scene().screen_to_scene_coordinates(Vector3(0.0, 0.0, 0.0));
+    assert_eq!(node_position.xy(), center_of_screen.xy());
 }

@@ -1041,7 +1041,7 @@ impl Nodes {
 
 impl Nodes {
     /// Mark node as selected and send FRP event to node about its selection status.
-    fn select(&self, node_id: impl Into<NodeId>) {
+    pub fn select(&self, node_id: impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.get_cloned_ref(&node_id) {
             // Remove previous instances and add new selection at end of the list, indicating that
@@ -1055,7 +1055,7 @@ impl Nodes {
     }
 
     /// Mark node as deselected and send FRP event to node about its selection status.
-    fn deselect(&self, node_id: impl Into<NodeId>) {
+    pub fn deselect(&self, node_id: impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.get_cloned_ref(&node_id) {
             self.selected.remove_item(&node_id);
