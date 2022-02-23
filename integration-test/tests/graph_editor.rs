@@ -1,7 +1,7 @@
 use enso_integration_test::prelude::*;
 
 use approx::assert_abs_diff_eq;
-use enso_gui::view::graph_editor::NodeSource;
+use enso_gui::view::graph_editor::{GraphEditor, NodeId, NodeSource, component::node::Expression};
 use enso_web::sleep;
 use ensogl::display::navigation::navigator::ZoomEvent;
 use ordered_float::OrderedFloat;
@@ -103,10 +103,9 @@ async fn zooming() {
 
 #[wasm_bindgen_test]
 async fn adding_node_with_add_node_button() {
+    const INITIAL_NODE_COUNT: usize = 2;
     let test = IntegrationTestOnNewProject::setup().await;
     let graph_editor = test.graph_editor();
-    let add_node_button = &graph_editor.model.add_node_button;
-    let node_added = graph_editor.node_added.next_event();
 
     let nodes = graph_editor.model.nodes.all.keys();
     let nodes_positions = nodes.into_iter().flat_map(|id| graph_editor.model.get_node_position(id));
@@ -115,10 +114,10 @@ async fn adding_node_with_add_node_button() {
         sorted_positions.next().expect("Default project does not contain any nodes");
 
     // Node is created below the bottom-most one.
-    add_node_button.click();
-    let (node_id, node_source) = node_added.expect();
+    let (first_node_id, node_source) = add_node_with_add_node_button(&graph_editor, "1 + 1");
     assert!(node_source.is_none());
-    let node_position = graph_editor.model.get_node_position(node_id).expect("Node was not added");
+    assert_eq!(graph_editor.model.nodes.all.len(), INITIAL_NODE_COUNT + 1);
+    let node_position = graph_editor.model.get_node_position(first_node_id).expect("Node was not added");
     assert!(
         node_position.y < bottom_most_pos.y,
         "Expected that {node_position} < {bottom_most_pos}"
@@ -126,21 +125,34 @@ async fn adding_node_with_add_node_button() {
 
     // Selected node is used as a `source` node.
     graph_editor.model.nodes.deselect_all();
-    graph_editor.model.nodes.select(node_id);
-    let node_added = graph_editor.node_added.next_event();
-    add_node_button.click();
-    let (_, node_source) = node_added.expect();
-    assert_eq!(node_source, Some(NodeSource { node: node_id }));
+    graph_editor.model.nodes.select(first_node_id);
+    let (_, node_source) = add_node_with_add_node_button(&graph_editor, "+ 1");
+    assert_eq!(node_source, Some(NodeSource { node: first_node_id }));
+    assert_eq!(graph_editor.model.nodes.all.len(), INITIAL_NODE_COUNT + 2);
 
     // If there is a free space, the node new node is created in the center of screen.
     let camera = test.ide.ensogl_app.display.scene().layers.main.camera();
     camera.mod_position_xy(|pos| pos + Vector2(1000.0, 1000.0));
+    let wait_for_update = Duration::from_millis(500);
+    sleep(wait_for_update).await;
     graph_editor.model.nodes.deselect_all();
-    let node_added = graph_editor.node_added.next_event();
-    add_node_button.click();
-    let (node_id, _) = node_added.expect();
+    let (node_id, node_source) = add_node_with_add_node_button(&graph_editor, "1");
+    assert!(node_source.is_none());
+    assert_eq!(graph_editor.model.nodes.all.len(), INITIAL_NODE_COUNT + 3);
     let node_position = graph_editor.model.get_node_position(node_id).expect("Node was not added");
     let center_of_screen =
         test.ide.ensogl_app.display.scene().screen_to_scene_coordinates(Vector3(0.0, 0.0, 0.0));
-    assert_eq!(node_position.xy(), center_of_screen.xy());
+    assert_abs_diff_eq!(node_position.x, center_of_screen.x, epsilon = 10.0);
+    assert_abs_diff_eq!(node_position.y, center_of_screen.y, epsilon = 10.0);
+}
+
+fn add_node_with_add_node_button(graph_editor: &GraphEditor, expression: &str) -> (NodeId, Option<NodeSource>) {
+    let add_node_button = &graph_editor.model.add_node_button;
+    let node_added = graph_editor.node_added.next_event();
+    add_node_button.click();
+    let (node_id, source_node) = node_added.expect();
+    let node = graph_editor.model.nodes.get_cloned_ref(&node_id).expect("Node was not added");
+    node.set_expression(Expression::new_plain(expression));
+    graph_editor.stop_editing();
+    (node_id, source_node)
 }
