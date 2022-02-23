@@ -1,6 +1,9 @@
-use enso_gui::view::graph_editor::NodeSource;
 use enso_integration_test::prelude::*;
 
+use approx::assert_abs_diff_eq;
+use enso_web::sleep;
+use ensogl::display::navigation::navigator::ZoomEvent;
+use std::time::Duration;
 use ordered_float::OrderedFloat;
 
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
@@ -63,6 +66,41 @@ async fn debug_mode() {
 }
 
 #[wasm_bindgen_test]
+async fn zooming() {
+    let test = IntegrationTestOnNewProject::setup().await;
+    let project = test.project_view();
+    let graph_editor = test.graph_editor();
+    let camera = test.ide.ensogl_app.display.scene().layers.main.camera();
+    let navigator = &graph_editor.model.navigator;
+
+    let zoom_on_center = |amount: f32| ZoomEvent { focus: Vector2(0.0, 0.0), amount };
+    let zoom_duration_ms = Duration::from_millis(1000);
+
+    // Without debug mode
+    navigator.emit_zoom_event(zoom_on_center(-1.0));
+    sleep(zoom_duration_ms).await;
+    assert_abs_diff_eq!(camera.zoom(), 1.0, epsilon = 0.001);
+    navigator.emit_zoom_event(zoom_on_center(1.0));
+    sleep(zoom_duration_ms).await;
+    assert!(camera.zoom() < 1.0, "Camera zoom {} must be less than 1.0", camera.zoom());
+    navigator.emit_zoom_event(zoom_on_center(-2.0));
+    sleep(zoom_duration_ms).await;
+    assert_abs_diff_eq!(camera.zoom(), 1.0, epsilon = 0.001);
+
+    // With debug mode
+    project.enable_debug_mode();
+    navigator.emit_zoom_event(zoom_on_center(-1.0));
+    sleep(zoom_duration_ms).await;
+    assert!(camera.zoom() > 1.0, "Camera zoom {} must be greater than 1.0", camera.zoom());
+    navigator.emit_zoom_event(zoom_on_center(5.0));
+    sleep(zoom_duration_ms).await;
+    assert!(camera.zoom() < 1.0, "Camera zoom {} must be less than 1.0", camera.zoom());
+    navigator.emit_zoom_event(zoom_on_center(-5.0));
+    sleep(zoom_duration_ms).await;
+    assert!(camera.zoom() > 1.0, "Camera zoom {} must be greater than 1.0", camera.zoom());
+}
+
+#[wasm_bindgen_test]
 async fn adding_node_with_add_node_button() {
     let test = IntegrationTestOnNewProject::setup().await;
     let project = test.project_view();
@@ -105,3 +143,4 @@ async fn adding_node_with_add_node_button() {
     let center_of_screen = test.ide.ensogl_app.display.scene().screen_to_scene_coordinates(Vector3(0.0, 0.0, 0.0));
     assert_eq!(node_position.xy(), center_of_screen.xy());
 }
+
