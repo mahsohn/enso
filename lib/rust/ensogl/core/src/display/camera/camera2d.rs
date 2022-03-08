@@ -186,14 +186,9 @@ struct Camera2dData {
     clipping:               Clipping,
     matrix:                 Matrix,
     dirty:                  Dirty,
-<<<<<<< HEAD
-    zoom_update_registry:   callback::Registry1<f32>,
-    screen_update_registry: callback::Registry1<Vector2<f32>>,
-    frp: Frp,
-=======
     zoom_update_registry:   callback::registry::CopyMut1<f32>,
     screen_update_registry: callback::registry::CopyMut1<Vector2<f32>>,
->>>>>>> develop
+    frp: Frp,
 }
 
 type ProjectionDirty = dirty::SharedBool<()>;
