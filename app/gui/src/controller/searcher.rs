@@ -2,6 +2,7 @@
 pub mod action;
 
 use crate::prelude::*;
+use crate::prelude::DefaultInfoLogger as Logger;
 
 use crate::controller::graph::FailedToCreateNode;
 use crate::controller::graph::NewNodeInfo;
@@ -840,6 +841,8 @@ impl Searcher {
     /// list - once it be retrieved, the new list will be set and notification will be emitted.
     fn reload_list(&self) {
         let this_type = self.this_arg_type_for_next_completion();
+        let id = self.data.borrow().input.next_completion_id();
+        DEBUG!("reload list: {id:?}");
         let return_types = match self.data.borrow().input.next_completion_id() {
             CompletedFragmentId::Function => vec![],
             CompletedFragmentId::Argument { index } =>

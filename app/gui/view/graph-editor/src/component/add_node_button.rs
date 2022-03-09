@@ -97,11 +97,7 @@ impl AddNodeButton {
     pub fn new(app: &Application) -> Self {
         let view = ensogl_component::button::View::new(app);
         let network = frp::Network::new("AddNodeButton");
-<<<<<<< HEAD
         let scene = &app.display.default_scene;
-=======
-        let scene = app.display.scene();
->>>>>>> 0836ce741 (Creating a new node with the (+) button (#3278))
         let camera = scene.camera();
         let style_watch = StyleWatchFrp::new(&scene.style_sheet);
 

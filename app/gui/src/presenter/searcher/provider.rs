@@ -23,6 +23,8 @@ pub type Any = (
 /// Create providers from the current controller's action list.
 pub fn create_providers_from_controller(logger: &Logger, controller: &controller::Searcher) -> Any {
     use controller::searcher::Actions;
+    let actions = controller.actions();
+    DEBUG!("create_providers_from_controller: {actions:?}");
     match controller.actions() {
         Actions::Loading => as_any(Rc::new(list_view::entry::EmptyProvider)),
         Actions::Loaded { list } => {

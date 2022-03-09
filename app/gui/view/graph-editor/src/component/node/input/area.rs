@@ -367,7 +367,9 @@ impl Area {
                 model.label.set_focus(edit_mode);
                 if *edit_mode {
                     // Reset the code to hide non-connected port names.
+                    DEBUG!("BEFORE SET CONTENT");
                     model.label.set_content(model.expression.borrow().code.clone());
+                    DEBUG!("AFTER SET CONTENT");
                     model.label.set_cursor_at_mouse_position();
                 } else {
                     model.label.remove_all_cursors();

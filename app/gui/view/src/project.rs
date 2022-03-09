@@ -78,6 +78,7 @@ ensogl::define_endpoints! {
         enable_debug_mode(),
         // Disable Debug Mode of Graph Editor.
         disable_debug_mode(),
+        stop_node_adding(),
     }
 
     Output {
@@ -447,17 +448,23 @@ impl View {
 
             // === Adding Node ===
 
-            searcher_for_adding <- graph.node_added.map(
-                |&(node, src)| SearcherParams::new_for_new_node(node, src)
+            searcher_for_adding <- graph.node_added.filter(|(_, _, should_edit)| *should_edit).map(
+                |&(node, src, _)| SearcherParams::new_for_new_node(node, src)
             );
+            trace graph.node_added;
+            trace frp.adding_new_node;
             frp.source.adding_new_node <+ searcher_for_adding.to_true();
             new_node_edited <- graph.node_editing_started.gate(&frp.adding_new_node);
             frp.source.searcher <+ searcher_for_adding.sample(&new_node_edited).map(|&s| Some(s));
+            trace new_node_edited;
 
+            trace graph.node_being_edited;
+            trace graph.node_editing_started;
             adding_committed <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
             adding_aborted <- frp.editing_aborted.gate(&frp.adding_new_node);
             adding_finished <- any(adding_committed,adding_aborted);
             frp.source.adding_new_node <+ adding_finished.constant(false);
+            frp.source.adding_new_node <+ frp.stop_node_adding.constant(false);
             frp.source.searcher <+ adding_finished.constant(None);
 
             eval adding_committed ([graph](node) {
@@ -469,10 +476,13 @@ impl View {
 
             // === Editing ===
 
-            existing_node_edited <- graph.node_editing_started.gate_not(&frp.adding_new_node);
+            trace graph.node_editing_started;
+            existing_node_edited <- graph.node_being_edited.filter_map(|x| *x).gate_not(&frp.adding_new_node);
+            //existing_node_edited <- graph.node_editing_started.gate_not(&frp.adding_new_node);
             frp.source.searcher <+ existing_node_edited.map(
                 |&node| Some(SearcherParams::new_for_edited_node(node))
             );
+            trace frp.source.searcher;
 
 
             // === Searcher Position and Visibility ===
@@ -673,6 +683,7 @@ impl application::View for View {
             (Press, "", "cmd s", "save_module"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
+            (Press, "debug_mode", "cmd a", "stop_node_adding"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
         ])

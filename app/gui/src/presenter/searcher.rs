@@ -42,6 +42,7 @@ impl Model {
     }
 
     fn input_changed(&self, new_input: &str) {
+        DEBUG!("Input changed: {new_input}");
         if let Err(err) = self.controller.set_input(new_input.to_owned()) {
             error!(self.logger, "Error while setting new searcher input: {err}");
         }
@@ -107,6 +108,7 @@ impl Searcher {
         view: view::project::View,
         input_view: ViewNodeId,
     ) -> Self {
+        DEBUG!("Init searcher presenter");
         let model = Rc::new(Model::new(parent, controller, view, input_view));
         let network = frp::Network::new("presenter::Searcher");
 
@@ -115,6 +117,7 @@ impl Searcher {
 
         frp::extend! { network
             eval graph.node_expression_set ([model]((changed_node, expr)) {
+                DEBUG!("EVAL NODE_EXPRESSION_SET");
                 if *changed_node == input_view {
                     model.input_changed(expr);
                 }
