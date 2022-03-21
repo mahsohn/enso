@@ -798,6 +798,7 @@ dependencies = [
  "enso-data-structures",
  "enso-logger",
  "enso-prelude",
+ "enso-profiler",
  "enso-text",
  "failure",
  "itertools 0.10.3",

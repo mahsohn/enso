@@ -517,6 +517,7 @@ impl<T: Value> SimulationDataCell<T> {
         });
     }
 
+    #[profile(Debug)]
     pub fn set_target_value(&self, target_value: T) {
         self.data.update(|mut sim| {
             sim.set_target_value(target_value);
@@ -644,6 +645,7 @@ where
     OnEnd: Callback1<EndStatus>,
 {
     /// Constructor.
+    #[profile(Detail)]
     pub fn new(callback: OnStep, on_start: OnStart, on_end: OnEnd) -> Self {
         let data = Rc::new(SimulatorData::new(callback, on_start, on_end));
         let animation_loop = default();
@@ -701,12 +703,14 @@ where
     }
 
     /// Starts the simulation and attaches it to an animation loop.
+    #[profile(Debug)]
     fn start(&self) {
         if self.animation_loop.get().is_none() {
             let frame_rate = self.frame_rate.get();
             let step = step(self);
             let animation_loop = animation::Loop::new_with_fixed_frame_rate(frame_rate, step);
             self.animation_loop.set(Some(animation_loop));
+            let _profiler_on_start = profiler::start_debug!(profiler::APP_LIFETIME, "on_start");
             self.on_start.call();
         }
     }
@@ -794,6 +798,8 @@ where
     let data = simulator.data.clone_ref();
     let animation_loop = simulator.animation_loop.downgrade();
     move |time: animation::TimeInfo| {
+        let _profiler = profiler::start_debug!(
+            profiler::APP_LIFETIME, "animation::physics::inertia::step");
         let delta_seconds = time.frame / 1000.0;
         if !data.step(delta_seconds) {
             if let Some(animation_loop) = animation_loop.upgrade() {

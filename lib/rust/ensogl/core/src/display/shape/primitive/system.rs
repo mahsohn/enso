@@ -53,6 +53,7 @@ pub struct ShapeSystem {
 
 impl ShapeSystem {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new<'t, S, Sh>(scene: S, shape: Sh) -> Self
     where
         S: Into<&'t Scene>,
@@ -85,12 +86,14 @@ impl ShapeSystem {
     /// Enables or disables pointer events on this shape system. All shapes of a shape system which
     /// has pointer events disabled would be completely transparent for the mouse (they would pass
     /// through all mouse events).
+    #[profile(Debug)]
     pub fn set_pointer_events(&self, val: bool) {
         self.pointer_events.set(val);
         self.reload_shape();
     }
 
     /// Replaces the shape definition.
+    #[profile(Debug)]
     pub fn set_shape<S: Into<def::AnyShape>>(&self, shape: S) {
         let shape = shape.into();
         *self.shape.borrow_mut() = shape;
@@ -106,6 +109,7 @@ impl ShapeSystem {
     }
 
     /// Define a new shader input.
+    #[profile(Debug)]
     pub fn add_input<T: material::Input + Storable>(&self, name: &str, t: T) -> Buffer<T>
     where AnyBuffer: From<Buffer<T>> {
         self.material.borrow_mut().add_input(name, t);

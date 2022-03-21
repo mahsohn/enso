@@ -58,6 +58,7 @@ impl Module {
     /// Fails if the `new_content` is so broken that it cannot be serialized to text. In such case
     /// the module's state is guaranteed to remain unmodified and the notification will not be
     /// emitted.
+    #[profile(Debug)]
     fn set_content(&self, new_content: Content, kind: NotificationKind) -> FallibleResult {
         if new_content == *self.content.borrow() {
             debug!(self.logger, "Ignoring spurious update.");

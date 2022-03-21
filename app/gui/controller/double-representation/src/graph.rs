@@ -71,6 +71,7 @@ impl GraphInfo {
 
     /// Gets all known nodes in this graph (does not include special pseudo-nodes like graph
     /// inputs and outputs).
+    #[profile(Debug)]
     pub fn nodes(&self) -> Vec<NodeInfo> {
         let ast = &self.source.ast;
         let body = &ast.rarg;

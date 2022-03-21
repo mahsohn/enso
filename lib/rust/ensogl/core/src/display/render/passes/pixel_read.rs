@@ -160,6 +160,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
 }
 
 impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
+    #[profile(Debug)]
     fn run(&mut self, instance: &pass::Instance) {
         if self.to_next_read > 0 {
             self.to_next_read -= 1;

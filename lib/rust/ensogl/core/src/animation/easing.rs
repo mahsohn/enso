@@ -421,6 +421,7 @@ where
     let data = easing.data.clone_ref();
     let animation_loop = easing.animation_loop.downgrade();
     move |time: animation::TimeInfo| {
+        let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "animation::easing::step");
         if data.active.get() {
             data.step(time.local)
         } else if let Some(animation_loop) = animation_loop.upgrade() {

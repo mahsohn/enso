@@ -64,6 +64,7 @@ impl<Callback> RawLoop<Callback>
 where Callback: RawLoopCallback
 {
     /// Create and start a new animation loop.
+    #[profile(Detail)]
     pub fn new(callback: Callback) -> Self {
         let data = Rc::new(RefCell::new(RawLoopData::new(callback)));
         let weak_data = Rc::downgrade(&data);
@@ -107,6 +108,7 @@ impl<Callback> RawLoopData<Callback> {
 }
 
 impl<Callback> Drop for RawLoopData<Callback> {
+    #[profile(Debug)]
     fn drop(&mut self) {
         web::window.cancel_animation_frame_or_panic(self.handle_id);
     }

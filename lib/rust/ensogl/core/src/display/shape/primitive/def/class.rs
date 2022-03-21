@@ -37,6 +37,7 @@ impl AnyShape {
 }
 
 impl canvas::Draw for AnyShape {
+    #[profile(Debug)]
     fn draw(&self, canvas: &mut Canvas) -> canvas::Shape {
         self.rc.draw(canvas)
     }

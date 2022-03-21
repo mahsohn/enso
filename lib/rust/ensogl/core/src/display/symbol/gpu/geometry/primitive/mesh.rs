@@ -159,6 +159,7 @@ impl {
     }
 
     /// Check dirty flags and update the state accordingly.
+    #[profile(Debug)]
     pub fn update(&mut self) {
         debug!(self.logger, "Updating.", || {
             if self.scopes_dirty.check_all() {

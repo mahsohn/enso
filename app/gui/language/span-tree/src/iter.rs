@@ -41,6 +41,7 @@ pub struct LeafIterator<'a, T> {
 impl<'a, T: Payload> Iterator for LeafIterator<'a, T> {
     type Item = node::Ref<'a, T>;
 
+    #[profile(Debug)]
     fn next(&mut self) -> Option<Self::Item> {
         if self.next_node.is_some() {
             let crumbs = self.stack.iter().map(|sf| &sf.child_being_visited);

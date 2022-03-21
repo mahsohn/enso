@@ -124,6 +124,7 @@ impl ExprConversion {
 impl From<node::Expression> for Expression {
     /// Traverses the `SpanTree` and constructs `viz_code` based on `code` and the `SpanTree`
     /// structure. It also computes `port::Model` values in the `viz_code` representation.
+    #[profile(Debug)]
     fn from(t: node::Expression) -> Self {
         // The length difference between `code` and `viz_code` so far.
         let mut shift = 0.bytes();
@@ -548,6 +549,7 @@ impl Area {
         self.model.label.set_content(expression.viz_code.clone());
     }
 
+    #[profile(Debug)]
     fn build_port_shapes_on_new_expression(&self, expression: &mut Expression) {
         let mut is_header = true;
         let mut id_crumbs_map = HashMap::new();
@@ -723,6 +725,7 @@ impl Area {
     /// Initializes FRP network for every port. Please note that the networks are connected
     /// hierarchically (children get events from parents), so it is easier to init all networks
     /// this way, rather than delegate it to every port.
+    #[profile(Debug)]
     fn init_port_frp_on_new_expression(&self, expression: &mut Expression) {
         let model = &self.model;
 
@@ -735,6 +738,7 @@ impl Area {
 
 
             // === Type Computation ===
+            let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "type_computation");
 
             let parent_tp = parent_tp.clone().unwrap_or_else(||{
                 frp::extend! { port_network
@@ -755,8 +759,9 @@ impl Area {
                 self.frp.source.on_port_type_change <+ frp.tp.map(move |t|(crumbs.clone(),t.clone()));
             }
 
-
+            std::mem::drop(_profiler);
             // === Code Coloring ===
+            let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "code_coloring");
 
             let styles     = model.styles.clone_ref();
             let styles_frp = model.styles_frp.clone_ref();
@@ -822,8 +827,10 @@ impl Area {
                 self.set_view_mode(self.view_mode.value());
             }
 
-
+            std::mem::drop(_profiler);
             // === Highlight Coloring ===
+            let _profiler = profiler::start_debug!(
+                profiler::APP_LIFETIME, "highlight_coloring");
 
             if let Some(port_shape) = &node.payload.shape {
                 let viz_color          = color::Animation::new(port_network);
@@ -873,6 +880,7 @@ impl Area {
     /// For example, firing the `port::set_definition_type` will fire `on_port_type_change`, which
     /// may require some edges to re-color, which consequently will require to checking the current
     /// expression types.
+    #[profile(Debug)]
     fn init_new_expression(&self, expression: Expression) {
         *self.model.expression.borrow_mut() = expression;
         let expression = self.model.expression.borrow();
@@ -881,6 +889,7 @@ impl Area {
         });
     }
 
+    #[profile(Debug)]
     pub(crate) fn set_expression(&self, new_expression: impl Into<node::Expression>) {
         let mut new_expression = Expression::from(new_expression.into());
         if DEBUG {

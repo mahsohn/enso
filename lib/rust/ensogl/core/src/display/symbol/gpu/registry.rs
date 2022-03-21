@@ -124,6 +124,7 @@ impl SymbolRegistry {
     }
 
     /// Rasterize selected symbols.
+    #[profile(Debug)]
     pub fn render_by_ids(&self, ids: &[SymbolId]) {
         let symbols = self.symbols.borrow();
         for id in ids {

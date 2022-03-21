@@ -182,6 +182,7 @@ impl {
     }
 
     /// Check dirty flags and update the state accordingly.
+    #[profile(Debug)]
     pub fn update(&mut self) {
         debug!(self.logger, "Updating.", || {
             if self.shape_dirty.check() {

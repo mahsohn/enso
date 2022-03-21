@@ -52,6 +52,7 @@ impl<T: mix::Mixable + frp::Data> Animation<T>
 where mix::Repr<T>: inertia::Value
 {
     /// Constructor. The initial value of the animation is set to `default`.
+    #[profile(Detail)]
     pub fn new(network: &frp::Network) -> Self {
         frp::extend! { network
             value_src <- any_mut::<T>();
@@ -134,6 +135,7 @@ impl<T: mix::Mixable + frp::Data> DEPRECATED_Animation<T>
 where mix::Repr<T>: inertia::Value
 {
     /// Constructor.
+    #[profile(Detail)]
     pub fn new(network: &frp::Network) -> Self {
         frp::extend! { network
             def target = source::<T>();

@@ -358,6 +358,7 @@ struct ViewUpdate {
 
 impl ViewUpdate {
     /// Create ViewUpdate information from Graph Presenter's model.
+    #[profile(Detail)]
     fn new(model: &Model) -> FallibleResult<Self> {
         let state = model.state.clone_ref();
         let nodes = model.controller.graph().nodes()?;

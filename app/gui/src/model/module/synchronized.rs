@@ -263,6 +263,7 @@ impl API for Module {
 impl Module {
     /// Returns the asynchronous task which listens for all module changes and sends proper updates
     /// to Language Server.
+    #[profile(Detail)]
     fn runner(
         self: Rc<Self>,
         initial_ls_content: ContentSummary,
@@ -313,7 +314,8 @@ impl Module {
     }
 
     /// Send to LanguageServer update about received notification about module. Returns the new
-    /// content summery of Language Server state.
+    /// content summary of Language Server state.
+    #[profile(Detail)]
     async fn handle_notification(
         &self,
         content: &LanguageServerContent,
@@ -426,6 +428,7 @@ impl Module {
 
     /// This is a helper function with all common logic regarding sending the update to
     /// Language Server. Returns the new summary of Language Server state.
+    #[profile(Detail)]
     fn notify_language_server(
         &self,
         ls_content: &ContentSummary,
@@ -441,7 +444,7 @@ impl Module {
         };
         debug!(self.logger, "Notifying LS with edit: {edit:#?}.");
         let ls_future_reply = self.language_server.client.apply_text_file_edit(&edit);
-        async {
+        async move {
             ls_future_reply.await?;
             Ok(summary)
         }

@@ -359,6 +359,7 @@ impl ShaderBuilder {
         }
     }
 
+    #[profile(Debug)]
     pub fn build(&self) -> Shader {
         let vertex = self.vertex.to_code();
         let fragment = self.fragment.to_code();

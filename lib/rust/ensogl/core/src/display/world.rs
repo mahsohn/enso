@@ -284,6 +284,7 @@ impl WorldData {
     /// function is more precise than time obtained from the [`window.performance().now()`] one.
     /// Follow this link to learn more:
     /// https://stackoverflow.com/questions/38360250/requestanimationframe-now-vs-performance-now-time-discrepancy.
+    #[profile(Debug)]
     pub fn go_to_next_frame_with_time(&self, time: animation::TimeInfo) {
         let previous_frame_stats = self.stats.begin_frame();
         if let Some(stats) = previous_frame_stats {

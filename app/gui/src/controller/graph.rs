@@ -222,6 +222,7 @@ pub struct NodeTrees {
 
 impl NodeTrees {
     #[allow(missing_docs)]
+    #[profile(Debug)]
     pub fn new(node: &NodeInfo, context: &impl SpanTreeContext) -> Option<NodeTrees> {
         let inputs = SpanTree::new(node.expression(), context).ok()?;
         let outputs = if let Some(pat) = node.pattern() {
@@ -234,6 +235,7 @@ impl NodeTrees {
 
     /// Converts AST crumbs (as obtained from double rep's connection endpoint) into the
     /// appropriate span-tree node reference.
+    #[profile(Debug)]
     pub fn get_span_tree_node<'a, 'b>(
         &'a self,
         ast_crumbs: &'b [ast::Crumb],
@@ -268,6 +270,7 @@ pub struct Connections {
 
 impl Connections {
     /// Describes a connection for given double representation graph.
+    #[profile(Detail)]
     pub fn new(graph: &GraphInfo, context: &impl SpanTreeContext) -> Connections {
         let trees = graph
             .nodes()
@@ -542,6 +545,7 @@ impl Handle {
     }
 
     /// Returns information about all the nodes currently present in this graph.
+    #[profile(Detail)]
     pub fn nodes(&self) -> FallibleResult<Vec<Node>> {
         let node_infos = self.all_node_infos()?;
         let mut nodes = Vec::new();
@@ -559,6 +563,7 @@ impl Handle {
     ///
     /// To obtain connection using only the locally available data, one may invoke this method
     /// passing `self` (i.e. the call target) as the context.
+    #[profile(Detail)]
     pub fn connections(&self, context: &impl SpanTreeContext) -> FallibleResult<Connections> {
         let graph = self.graph_info()?;
         Ok(Connections::new(&graph, context))

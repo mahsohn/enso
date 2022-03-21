@@ -350,6 +350,7 @@ impl Symbol {
     }
 
     /// Check dirty flags and update the state accordingly.
+    #[profile(Debug)]
     pub fn update(&self, global_variables: &UniformScope) {
         if self.context.borrow().is_some() {
             debug!(self.logger, "Updating.", || {
@@ -488,13 +489,18 @@ impl Symbol {
 impl Symbol {
     /// Creates a new VertexArrayObject, discovers all variable bindings from shader to geometry,
     /// and initializes the VAO with the bindings.
+    #[profile(Debug)]
     fn init_variable_bindings(
         &self,
         var_bindings: &[shader::VarBinding],
         global_variables: &UniformScope,
     ) {
         if let Some(context) = &*self.context.borrow() {
-            let max_texture_units = context.get_parameter(Context::MAX_TEXTURE_IMAGE_UNITS);
+            let max_texture_units = {
+                let _profiler = profiler::start_debug!(
+                    profiler::APP_LIFETIME, "get_parameter(MAX_TEXTURE_IMAGE_UNITS)");
+                context.get_parameter(Context::MAX_TEXTURE_IMAGE_UNITS)
+            };
             let max_texture_units = max_texture_units.unwrap_or_else(|num| {
                 let min_texture_units = 2;
                 error!(
@@ -528,6 +534,7 @@ impl Symbol {
         }
     }
 
+    #[profile(Debug)]
     fn init_attribute_binding(
         &self,
         context: &Context,
@@ -551,6 +558,7 @@ impl Symbol {
 
     /// Init uniform binding. This function should be run in context of `program` (used inside
     /// closure passed as argument to `with_program`).
+    #[profile(Debug)]
     fn init_uniform_binding(
         &self,
         context: &Context,
@@ -598,6 +606,7 @@ impl Symbol {
     }
 
     /// For each variable from the shader definition, looks up its position in geometry scopes.
+    #[profile(Debug)]
     fn discover_variable_bindings(
         &self,
         global_variables: &UniformScope,
@@ -635,7 +644,10 @@ impl Symbol {
     /// is executed, both program and VAO are bound to None.
     fn with_program_mut<F: FnOnce(&Self, &WebGlProgram)>(&self, context: &Context, f: F) {
         if let Some(program) = self.shader.program().as_ref() {
-            context.use_program(Some(program));
+            {
+                let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "use_program");
+                context.use_program(Some(program));
+            }
             self.with_vao_mut(|this| f(this, program));
             context.use_program(None);
         }

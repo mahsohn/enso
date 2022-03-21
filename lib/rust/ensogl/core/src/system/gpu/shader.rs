@@ -2,6 +2,8 @@
 #![allow(missing_docs)]
 
 use enso_prelude::*;
+use enso_profiler as profiler;
+use enso_profiler::prelude::*;
 
 use crate::system::Context;
 
@@ -91,6 +93,7 @@ pub trait CompilationTarget {
 }
 
 impl CompilationTarget for Shader {
+    #[profile(Debug)]
     fn check(&self, ctx: &Context) -> Result<(), CompilationError> {
         let status = Context::COMPILE_STATUS;
         let status_ok = ctx.get_shader_parameter(self, status).as_bool().unwrap_or(false);
@@ -101,6 +104,7 @@ impl CompilationTarget for Shader {
 }
 
 impl CompilationTarget for Program {
+    #[profile(Debug)]
     fn check(&self, ctx: &Context) -> Result<(), CompilationError> {
         let status = Context::LINK_STATUS;
         let status_ok = ctx.get_program_parameter(self, status).as_bool().unwrap_or(false);
@@ -128,6 +132,7 @@ pub fn compile_fragment_shader(ctx: &Context, src: &str) -> Result<Shader, Error
     compile_shader(ctx, Context::FRAGMENT_SHADER, src)
 }
 
+#[profile(Debug)]
 pub fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Result<Shader, Error> {
     let target = ErrorTarget::Shader;
     let shader = ctx.create_shader(tp).ok_or(Error::Create { target })?;
@@ -170,6 +175,7 @@ pub enum ContextLossOrError {
 }
 
 /// Link the provided vertex and fragment shaders into a program.
+#[profile(Debug)]
 pub fn link_program(
     ctx: &Context,
     vert_shader: &Shader,

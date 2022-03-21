@@ -121,6 +121,7 @@ impl SymbolsRenderPass {
         instance.context.disable(web_sys::WebGl2RenderingContext::SCISSOR_TEST);
     }
 
+    #[profile(Detail)]
     fn render_layer(
         &mut self,
         instance: &pass::Instance,

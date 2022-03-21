@@ -1332,6 +1332,7 @@ impl GraphEditorModelWithNetwork {
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position())
     }
 
+    #[profile(Debug)]
     fn create_edge(
         &self,
         edge_click: &frp::Source<EdgeId>,
@@ -1354,6 +1355,7 @@ impl GraphEditorModelWithNetwork {
         edge_id
     }
 
+    #[profile(Detail)]
     fn new_edge_from_output(
         &self,
         edge_click: &frp::Source<EdgeId>,
@@ -1369,6 +1371,7 @@ impl GraphEditorModelWithNetwork {
         edge_id
     }
 
+    #[profile(Detail)]
     fn new_edge_from_input(
         &self,
         edge_click: &frp::Source<EdgeId>,
@@ -1419,6 +1422,7 @@ struct NodeCreationContext<'a> {
 }
 
 impl GraphEditorModelWithNetwork {
+    #[profile(Detail)]
     fn create_node(
         &self,
         ctx: &NodeCreationContext,
@@ -1640,6 +1644,7 @@ pub struct GraphEditorModel {
 
 impl GraphEditorModel {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    #[profile(Detail)]
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = &frp.network;
         let scene = &app.display.default_scene;
@@ -1778,6 +1783,7 @@ impl GraphEditorModel {
 // === Remove ===
 
 impl GraphEditorModel {
+    #[profile(Debug)]
     fn remove_edge<E: Into<EdgeId>>(&self, edge_id: E) {
         let edge_id = edge_id.into();
         if let Some(edge) = self.edges.remove(&edge_id) {
@@ -2068,6 +2074,7 @@ impl GraphEditorModel {
         }
     }
 
+    #[profile(Debug)]
     fn set_node_expression_usage_type(
         &self,
         node_id: impl Into<NodeId>,
@@ -2214,6 +2221,7 @@ impl GraphEditorModel {
 
     // FIXME[WD]: This implementation is slow. Node should allow for easy mapping between Crumbs
     //            and edges. Should be part of https://github.com/enso-org/ide/issues/822.
+    #[profile(Debug)]
     fn with_input_edge_id<T>(
         &self,
         id: NodeId,
@@ -2237,6 +2245,7 @@ impl GraphEditorModel {
 
     // FIXME[WD]: This implementation is slow. Node should allow for easy mapping between Crumbs
     //            and edges. Should be part of https://github.com/enso-org/ide/issues/822.
+    #[profile(Debug)]
     fn with_output_edge_id<T>(
         &self,
         id: NodeId,
@@ -2494,6 +2503,7 @@ pub fn enable_disable_toggle(
 }
 
 #[allow(unused_parens)]
+#[profile(Task)]
 fn new_graph_editor(app: &Application) -> GraphEditor {
     let world = &app.display;
     let scene = &world.default_scene;

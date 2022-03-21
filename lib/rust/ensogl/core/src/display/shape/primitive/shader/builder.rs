@@ -35,6 +35,7 @@ pub struct Builder {}
 impl Builder {
     /// Returns the final GLSL code. If `pointer_events_enabled` is set to false, the generated
     /// shape will be transparent for pointer events and will pass them trough.
+    #[profile(Detail)]
     pub fn run<S: canvas::Draw>(shape: &S, pointer_events_enabled: bool) -> CodeTemplate {
         let sdf_defs = primitive::all_shapes_glsl_definitions();
         let mut canvas = Canvas::default();
@@ -45,24 +46,27 @@ impl Builder {
         canvas.submit_shape_constructor("run");
         let defs =
             iformat!("{defs_header}\n\n{sdf_defs}\n\n\n\n{shape_header}\n\n{canvas.to_glsl()}");
-
-        let redirections = overload::builtin_redirections();
-        let math = overload::allow_overloading(MATH);
-        let color = overload::allow_overloading(COLOR);
-        let debug = overload::allow_overloading(DEBUG);
-        let shape = overload::allow_overloading(SHAPE);
-
-        let defs = overload::allow_overloading(&defs);
-        let code = format!(
-            "{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}",
-            redirections, math, color, debug, shape, defs
-        );
+        let code = Self::build_and_mangle_glsl(&defs);
         let main = format!(
             "bool pointer_events_enabled = {};\n{}",
             pointer_events_enabled, FRAGMENT_RUNNER
         );
 
         CodeTemplate::new(code, main, "")
+    }
+
+    #[profile(Detail)]
+    pub fn build_and_mangle_glsl(defs: &str) -> String {
+        let redirections = overload::builtin_redirections();
+        let math = overload::allow_overloading(MATH);
+        let color = overload::allow_overloading(COLOR);
+        let debug = overload::allow_overloading(DEBUG);
+        let shape = overload::allow_overloading(SHAPE);
+        let defs = overload::allow_overloading(&defs);
+        format!(
+            "{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}",
+            redirections, math, color, debug, shape, defs
+        )
     }
 }
 

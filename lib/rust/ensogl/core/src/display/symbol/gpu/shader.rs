@@ -104,6 +104,7 @@ impl {
     }
 
     /// Check dirty flags and update the state accordingly.
+    #[profile(Debug)]
     pub fn update(&mut self, bindings:&[VarBinding]) {
         debug!(self.logger, "Updating.", || {
             if let Some(context) = &self.context {
