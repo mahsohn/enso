@@ -20,10 +20,10 @@ use ordered_float::OrderedFloat;
 ensogl::define_endpoints! {
     Input {
         /// Informs the `Statuses` collection about the profiling status of a node.
-        set(NodeId,node::profiling::Status),
+        set(Option<NodeId>,node::profiling::Status),
 
         /// Removes a node's information from the collection.
-        remove (NodeId)
+        remove (Option<NodeId>)
     }
     Output {
         /// The minimum running time of any node in milliseconds. Is positive infinity if no status

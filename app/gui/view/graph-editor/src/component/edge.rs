@@ -1026,9 +1026,9 @@ pub struct ShapeViewEventsProxy {
     pub mouse_over: frp::Stream,
     pub mouse_out:  frp::Stream,
 
-    on_mouse_down: frp::Source<display::object::Id>,
-    on_mouse_over: frp::Source<display::object::Id>,
-    on_mouse_out:  frp::Source<display::object::Id>,
+    on_mouse_down: frp::Source<Option<display::object::Id>>,
+    on_mouse_over: frp::Source<Option<display::object::Id>>,
+    on_mouse_out:  frp::Source<Option<display::object::Id>>,
 }
 
 #[allow(missing_docs)]
@@ -1197,7 +1197,8 @@ impl Edge {
             eval input.source_height   ((t) source_height.set(*t));
             eval input.hover_position  ((t) hover_position.set(*t));
 
-            eval  shape_events.on_mouse_over ((id) hover_target.set(Some(*id)));
+            eval  shape_events.on_mouse_over ((id) hover_target.set(
+                Some(id.expect("Mouse event must not occur without a source."))));
             eval_ shape_events.on_mouse_out       (hover_target.set(None));
             eval_ input.redraw                    (model.redraw());
 
