@@ -514,9 +514,9 @@ impl Area {
     // correctly, as it uses     the new shape system definition, and thus, inherits the scene
     // layer settings from this     display object.
     pub fn add_to_scene_layer(&self, layer: &display::scene::Layer) {
-        for symbol in self.symbols() {
-            layer.add_exclusive(&symbol);
-        }
+        //for symbol in self.symbols() {
+        //    layer.add_exclusive(&symbol);
+        //}
         self.data.camera.set(layer.camera());
         layer.add_exclusive(self);
     }
@@ -525,19 +525,21 @@ impl Area {
     // TODO see TODO in add_to_scene_layer method.
     #[allow(non_snake_case)]
     pub fn remove_from_scene_layer(&self, layer: &display::scene::Layer) {
-        for symbol in self.symbols() {
-            layer.remove_symbol(&symbol);
-        }
+        //for symbol in self.symbols() {
+        //    layer.remove_symbol(&symbol);
+        //}
     }
 
-    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
-        let text_symbol = self.data.glyph_system.sprite_system().symbol.clone_ref();
-        let shapes = &self.data.app.display.default_scene.shapes;
-        let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
-        //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
-        SmallVec::from_buf([text_symbol /* selection_symbol */])
+    /*
+fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
+    let text_symbol = self.data.glyph_system.sprite_system().symbol.clone_ref();
+    let shapes = &self.data.app.display.default_scene.shapes;
+    let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
+    let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
+    //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
+    SmallVec::from_buf([text_symbol /* selection_symbol */])
     }
+     */
 }
 
 
@@ -558,7 +560,7 @@ pub struct AreaModel {
     frp_endpoints:  FrpEndpoints,
     buffer:         buffer::View,
     display_object: display::object::Instance,
-    glyph_system:   glyph::System,
+    //glyph_system:   glyph::System,
     lines:          Lines,
     single_line:    Rc<Cell<bool>>,
     selection_map:  Rc<RefCell<SelectionMap>>,
@@ -571,28 +573,28 @@ impl AreaModel {
         let scene = &app.display.default_scene;
         let logger = Logger::new("text_area");
         let selection_map = default();
-        let fonts = scene.extension::<typeface::font::Registry>();
-        let font = fonts.load("DejaVuSansMono");
-        let glyph_system = typeface::glyph::System::new(&scene, font);
+        //let fonts = scene.extension::<typeface::font::Registry>();
+        //let font = fonts.load("DejaVuSansMono");
+        //let glyph_system = typeface::glyph::System::new(&scene, font);
         let display_object = display::object::Instance::new(&logger);
         let buffer = default();
         let lines = default();
         let single_line = default();
         let camera = Rc::new(CloneRefCell::new(scene.camera().clone_ref()));
 
-        display_object.add_child(&glyph_system);
+        //display_object.add_child(&glyph_system);
 
         // FIXME[WD]: These settings should be managed wiser. They should be set up during
         // initialization of the shape system, not for every area creation. To be improved during
         // refactoring of the architecture some day.
-        let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        let symbol = &shape_system.shape_system.sprite_system.symbol;
-        shape_system.shape_system.set_pointer_events(false);
+        //let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
+        //let symbol = &shape_system.shape_system.sprite_system.symbol;
+        //shape_system.shape_system.set_pointer_events(false);
 
         // FIXME[WD]: This is temporary sorting utility, which places the cursor in front of mouse
         // pointer and nodes. Should be refactored when proper sorting mechanisms are in place.
-        scene.layers.main.remove_symbol(symbol);
-        scene.layers.label.add_exclusive(symbol);
+        //scene.layers.main.remove_symbol(symbol);
+        //scene.layers.label.add_exclusive(symbol);
 
         let frp_endpoints = frp_endpoints.clone_ref();
 
@@ -603,7 +605,7 @@ impl AreaModel {
             frp_endpoints,
             buffer,
             display_object,
-            glyph_system,
+            //glyph_system,
             lines,
             single_line,
             selection_map,
@@ -752,6 +754,7 @@ impl AreaModel {
     }
 
     fn redraw_line(&self, view_line_index: usize, content: String) -> f32 {
+        /*
         let cursor_map = self
             .selection_map
             .borrow()
@@ -820,6 +823,8 @@ impl AreaModel {
         let cursor_offset = cursor_offset.unwrap_or_default();
         line.set_divs(divs);
         last_offset - cursor_offset
+         */
+        0.0
     }
 
     fn new_line(&self, index: usize) -> Line {
