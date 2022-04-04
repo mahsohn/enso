@@ -1,6 +1,5 @@
 //! A single block component that is used to build up a flame graph.
 
-use enso_frp::stream::ValueProvider;
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
