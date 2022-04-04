@@ -616,6 +616,8 @@ ensogl::define_endpoints_2! {
 
         /// Drop an edge that is being dragged.
         drop_dragged_edge            (),
+
+        print_profiling_information()
     }
 
     Output {
@@ -2447,6 +2449,7 @@ impl application::View for GraphEditor {
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
             (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
+            (Press, "", "cmd alt p", "print_profiling_information"),
         ])
             .iter()
             .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
@@ -3600,6 +3603,12 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         unlimit_max_zoom <- frp.set_debug_mode.on_true();
         eval_ limit_max_zoom (model.navigator.set_max_zoom(Some(MAX_ZOOM)));
         eval_ unlimit_max_zoom (model.navigator.set_max_zoom(None));
+
+        eval_ frp.print_profiling_information ([] {
+            use enso_profiler as profiler;
+            let log = profiler::internal::take_log();
+            ERROR!(log);
+        });
     }
 
     // Init defaults
