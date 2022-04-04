@@ -457,6 +457,21 @@ impl Project {
             debug!(logger, "Received an event from the json-rpc protocol: {event:?}");
             use engine_protocol::language_server::Event;
             use engine_protocol::language_server::Notification;
+            use engine_protocol::language_server::NotificationDiscriminants;
+
+            match &event {
+                Event::Closed => {
+                    enso_profiler_data::log_event("Closed");
+                }
+                Event::Error(_) => {
+                    enso_profiler_data::log_event("Error");
+                }
+                Event::Notification(notification) => {
+                    let name: NotificationDiscriminants = notification.into();
+                    enso_profiler_data::log_event(&format!("{:?}", name));
+                }
+            }
+
             match event {
                 Event::Notification(Notification::FileEvent(_)) => {}
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {

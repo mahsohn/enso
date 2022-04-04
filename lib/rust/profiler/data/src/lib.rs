@@ -103,6 +103,8 @@
 #![warn(unused_import_braces)]
 
 use enso_profiler as profiler;
+use std::collections::HashSet;
+
 use std::error;
 use std::fmt;
 
@@ -235,11 +237,11 @@ impl<M> Profile<M> {
 // === IDs and indexing ===
 
 /// Identifies a measurement in a particular profile.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct MeasurementId(pub(crate) usize);
 
 /// Identifies an interval in a particular profile.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct IntervalId(pub(crate) usize);
 
 impl<M> std::ops::Index<MeasurementId> for Profile<M> {
@@ -253,6 +255,97 @@ impl<M> std::ops::Index<IntervalId> for Profile<M> {
     type Output = ActiveInterval<M>;
     fn index(&self, IntervalId(index): IntervalId) -> &Self::Output {
         &self.intervals[index]
+    }
+}
+
+
+// === Searching & Filtering ===
+
+impl<M: PartialEq + Eq> Profile<M> {
+    /// A virtual interval containing the top-level intervals as children.
+    pub fn first_occurrence(&self, target: &M) -> Option<IntervalId> {
+        self.intervals
+            .iter()
+            .position(|interval| interval.metadata.iter().any(|item| item.data == *target))
+            .map(IntervalId)
+    }
+
+    /// A virtual interval containing the top-level intervals as children.
+    pub fn last_occurrence(&self, target: &M) -> Option<IntervalId> {
+        self.intervals
+            .iter()
+            .rev()
+            .position(|interval| interval.metadata.iter().any(|item| item.data == *target))
+            .map(|ix| self.intervals.len() - ix)
+            .map(IntervalId)
+    }
+
+    /// TODO
+    fn remove_intervals_from_measurements(&mut self, to_remove: &[IntervalId]) {
+        let to_remove = HashSet::<IntervalId>::from_iter(to_remove.iter().copied());
+        for measurement in self.measurements.iter_mut() {
+            let retained: Vec<_> = measurement
+                .intervals
+                .clone()
+                .into_iter()
+                .filter(|interval| !to_remove.contains(interval))
+                .collect();
+            measurement.intervals = retained;
+        }
+    }
+
+    /// TODO
+    pub fn with_intervals_after(mut self, start: IntervalId) -> Self {
+        let base_interval = &self.intervals[start.0];
+        if let Some(base_interval_end_time) = base_interval.interval.end {
+            // Find intervals to discard.
+            let to_remove: Vec<_> = self
+                .intervals
+                .iter()
+                .enumerate()
+                .filter_map(|(ix, interval)| {
+                    if interval.interval.start >= base_interval_end_time {
+                        Some(IntervalId(ix))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            // Remove intervals from their respective parents. Note that we leave the intervals
+            // in the `intervals` array to preserve their indices.
+            self.remove_intervals_from_measurements(&to_remove);
+        }
+        self
+    }
+
+    /// TODO
+    pub fn with_intervals_before(mut self, start: IntervalId) -> Self {
+        let base_interval = &self.intervals[start.0];
+        let base_interval_start_time = base_interval.interval.start;
+        // Find intervals to discard.
+        let to_remove: Vec<_> = self
+            .intervals
+            .iter()
+            .enumerate()
+            .filter_map(|(ix, interval)| {
+                if let Some(end_time) = interval.interval.end {
+                    if end_time <= base_interval_start_time {
+                        return Some(IntervalId(ix));
+                    }
+                }
+                None
+            })
+            .collect();
+        // Remove intervals from their respective parents. Note that we leave the intervals
+        // in the `intervals` array to preserve their indices.
+        self.remove_intervals_from_measurements(&to_remove);
+
+        self
+    }
+
+    /// TODO
+    pub fn iter_metadata(&self) -> impl Iterator<Item = &Metadata<M>> {
+        self.intervals.iter().flat_map(|interval| interval.metadata.iter())
     }
 }
 
@@ -325,6 +418,21 @@ pub enum OpaqueMetadata {
 }
 
 
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
+struct Event(String);
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
+enum EventMetadata {
+    Event(Event),
+}
+
+/// FIXME: bad inefficient API do not use this except for experimenting
+pub fn log_event(event_name: &str) {
+    let event_logger = enso_profiler::MetadataLogger::new("Event");
+    let event = Event(event_name.to_string());
+    event_logger.log(event);
+}
 
 // ============
 // === Mark ===

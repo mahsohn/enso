@@ -88,6 +88,7 @@ macro_rules! make_rpc_methods {
         impl API for Client {
             $(fn $method<'a>(&'a self, $($param_name:&'a $param_ty),*)
             -> std::pin::Pin<Box<dyn Future<Output=Result<$result>>>> {
+                $crate::enso_profiler_data::log_event(stringify!($method));
                 use json_rpc::api::RemoteMethodCall;
                 let phantom    = std::marker::PhantomData;
                 let input      = $method_input { phantom, $($param_name:&$param_name),* };

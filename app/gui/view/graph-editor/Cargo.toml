@@ -16,6 +16,7 @@ enso-config = { version = "0.1.0", path = "../../config" }
 enso-frp = { version = "0.1.0", path = "../../../../lib/rust/frp" }
 enso-logger = { path = "../../../../lib/rust/logger"}
 enso-prelude = { path = "../../../../lib/rust/prelude", features = ["serde"] }
+enso-profiler = { path = "../../../../lib/rust/profiler"}
 engine-protocol = { version = "0.1.0", path = "../../controller/engine-protocol" }
 enso-shapely = { path = "../../../../lib/rust/shapely"}
 enso-text = { version = "0.1.0", path = "../../../../lib/rust/text" }

@@ -193,7 +193,7 @@ commands.build.rust = async function (argv) {
         await gzip(paths.wasm.main, paths.wasm.mainGz)
 
         const limitMb = 4.65
-        await checkWasmSize(paths.wasm.mainGz, limitMb)
+        // await checkWasmSize(paths.wasm.mainGz, limitMb)
     }
     // Copy WASM files from temporary directory to Webpack's `dist` directory.
     await fs.cp(paths.wasm.root, paths.dist.wasm.root, { recursive: true })

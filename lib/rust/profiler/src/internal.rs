@@ -233,6 +233,21 @@ impl<Metadata, LabelStorage> Event<Metadata, LabelStorage> {
 
 
 // =============
+// === Mark ===
+// =============
+
+/// A measurement-start entry in the profiling log.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Mark<LabelStorage> {
+    /// Start time.
+    pub start: Timestamp,
+    /// Identifies where in the code this measurement originates.
+    pub label: Label<LabelStorage>,
+}
+
+
+
+// =============
 // === Start ===
 // =============
 

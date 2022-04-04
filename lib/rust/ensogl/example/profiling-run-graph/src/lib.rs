@@ -9,8 +9,8 @@
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
-#![warn(unused_qualifications)]
+#![allow(unused_qualifications)]
+#![allow(dead_code)]
 
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -28,6 +28,29 @@ use ensogl_core::system::web;
 use ensogl_flame_graph as flame_graph;
 
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
+struct Event(String);
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
+enum Metadata {
+    Event(Event),
+}
+
+impl Metadata {
+    pub fn label(&self) -> &str {
+        match self {
+            Metadata::Event(e) => &e.0,
+        }
+    }
+}
+
+// fn filter_by_mark(start: Event, end: Event, profile: Profile<Metadata>) -> Profile<Metadata> {
+//     let start = profile.first_occurrence(&Metadata::Event(start)).unwrap();
+//     let end = profile.first_occurrence(&Metadata::Event(end)).unwrap();
+//     profile.with_intervals_after(start).with_intervals_before(end)
+// }
+
+const DATA: &str = include_str!("./data.json");
 
 // ===================
 // === Entry Point ===
@@ -48,11 +71,48 @@ pub fn main() {
 
     init_theme(scene);
 
-    // Generate Test data
-    futures::executor::block_on(start_project());
+    // let event_logger = enso_profiler::MetadataLogger::new("Event");
+    // let start_event = Event("Collect Data".into());
+    // let end_event = Event("Finish Collecting Data".into());
 
-    let measurements = profiler_flame_graph::Graph::take_from_log();
+    // Generate Test data
+    // event_logger.log(start_event.clone());
+    // futures::executor::block_on(start_project());
+    // event_logger.log(end_event.clone());
+
+
+    // let profile: profiler_data::Profile<Metadata> =
+    // profiler::internal::take_log().parse().unwrap(); let profile =
+    // filter_by_mark(start_event, end_event, profile);
+
+    let profile = DATA.parse().unwrap();
+    // let measurements = {
+    //     let profile: Result<profiler_data::Profile<profiler_data::OpaqueMetadata>, _> =
+    //         profiler::internal::take_log().parse();
+    //     if let Ok(profile) = profile {
+    //         profiler_flame_graph::Graph::new_hybrid_graph(&profile)
+    //     } else {
+    //         eprintln!("Failed to deserialize profiling event log.");
+    //         profiler_flame_graph::Graph::default()
+    //     }
+    // };
+    //
+    let mut measurements = profiler_flame_graph::Graph::new_hybrid_graph(&profile);
+
+    let marks = profile
+        .iter_metadata()
+        .map(|metadata: &enso_profiler_data::Metadata<Metadata>| {
+            let position = metadata.mark.into_ms();
+            let label = metadata.data.label().to_string();
+            ERROR!(label);
+            profiler_flame_graph::Mark { position, label }
+        })
+        .collect();
+    measurements.marks = marks;
+
     let flame_graph = flame_graph::FlameGraph::from_data(measurements, app);
+
+
 
     world.add_child(&flame_graph);
     scene.add_child(&flame_graph);
@@ -76,7 +136,8 @@ fn init_theme(scene: &Scene) {
     let theme_manager = theme::Manager::from(&scene.style_sheet);
 
     let theme = theme::Theme::new();
-    theme.set("flame_graph_color", color::Rgb::new(1.0, 45.0 / 255.0, 0.0));
+    theme.set("flame_graph_block_color", color::Rgb::new(0.75, 45.0 / 255.0, 0.0));
+    theme.set("flame_graph_mark_color", color::Rgb::new(0.20, 0.20, 0.20));
 
     theme_manager.register("theme", theme);
 
@@ -109,6 +170,9 @@ fn work(n: u32) {
 #[profile(Objective)]
 async fn start_project() {
     wake_dragon().await;
+    let event_logger = enso_profiler::MetadataLogger::new("Event");
+    let end_event = Event("Finish Collecting Data".into());
+    event_logger.log(end_event);
     feed_troll();
     ride_rainbow();
 }
