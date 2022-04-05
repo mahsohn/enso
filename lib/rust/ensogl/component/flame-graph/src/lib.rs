@@ -24,9 +24,12 @@ use ensogl_core::display;
 mod block;
 mod mark;
 
+use enso_profiler_flame_graph::State;
+use ensogl_core::data::color::Lcha;
+use mark::Mark;
 
 pub use block::Block;
-use mark::Mark;
+
 
 
 // ========================
@@ -64,6 +67,11 @@ fn shape_from_block(block: profiler_flame_graph::Block, app: &Application) -> Bl
     component.set_content.emit(block.label);
     component.set_size.emit(size);
     component.set_position_xy(pos);
+
+    match block.state {
+        State::Active => component.set_color(Lcha::blue_green(0.5, 0.8)),
+        State::Paused => component.set_color(Lcha::blue_green(0.8, 0.0)),
+    }
 
     component
 }

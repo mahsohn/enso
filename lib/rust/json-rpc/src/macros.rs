@@ -88,13 +88,29 @@ macro_rules! make_rpc_methods {
         impl API for Client {
             $(fn $method<'a>(&'a self, $($param_name:&'a $param_ty),*)
             -> std::pin::Pin<Box<dyn Future<Output=Result<$result>>>> {
-                $crate::enso_profiler_data::log_event(stringify!($method));
                 use json_rpc::api::RemoteMethodCall;
+                use $crate::enso_profiler as profiler;
+                use $crate::enso_profiler::internal::StartState;
+                use $crate::enso_profiler::internal::Profiler;
+
+                let label = profiler::internal::Label(stringify!($method));
+                let parent = profiler::internal::EventId::implicit();
+                let now = Some(profiler::internal::Timestamp::now());
+                let profiler = profiler::Task::start(parent, label, now, StartState::Active);
+
                 let phantom    = std::marker::PhantomData;
                 let input      = $method_input { phantom, $($param_name:&$param_name),* };
                 let input_json = serde_json::to_value(input).unwrap();
                 let name       = $method_input::NAME;
                 let result_fut = self.handler.borrow().open_request_with_json(name,&input_json);
+
+                profiler.pause();
+
+                let result_fut = result_fut.map(move |value| {
+                    profiler.resume();
+                    profiler.finish();
+                    value
+                });
                 Box::pin(result_fut)
             })*
 

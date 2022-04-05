@@ -137,7 +137,7 @@ fn init_theme(scene: &Scene) {
 
     let theme = theme::Theme::new();
     theme.set("flame_graph_block_color", color::Rgb::new(0.75, 45.0 / 255.0, 0.0));
-    theme.set("flame_graph_mark_color", color::Rgb::new(0.20, 0.20, 0.20));
+    theme.set("flame_graph_mark_color", color::Lcha::blue_green(0.9, 0.1));
 
     theme_manager.register("theme", theme);
 
