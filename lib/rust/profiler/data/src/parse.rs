@@ -6,8 +6,7 @@ use std::error;
 use std::fmt;
 use std::mem;
 use std::str;
-
-
+use enso_profiler::internal::Header;
 
 // ===========================
 // === parse and interpret ===
@@ -64,7 +63,7 @@ pub(crate) fn interpret<M>(
     events: impl IntoIterator<Item = profiler::internal::Event<M, OwnedLabel>>,
 ) -> Result<crate::Profile<M>, crate::EventError<DataError>> {
     // Process log into data about each measurement, and data about relationships.
-    let LogVisitor { builders, order, intervals, .. } = LogVisitor::visit(events)?;
+    let LogVisitor { builders, order, intervals, headers, .. } = LogVisitor::visit(events)?;
     // Build measurements from accumulated measurement data.
     let mut measurement_ids = std::collections::HashMap::with_capacity(builders.len());
     let mut measurements = Vec::with_capacity(builders.len());
@@ -99,7 +98,8 @@ pub(crate) fn interpret<M>(
         intervals_.push(crate::ActiveInterval { measurement, interval, children, metadata });
         measurements[measurement.0].intervals.push(id);
     }
-    Ok(crate::Profile { measurements, intervals: intervals_ })
+    let time_offset = headers.time_offset;
+    Ok(crate::Profile { measurements, intervals: intervals_, time_offset })
 }
 
 
@@ -241,6 +241,8 @@ struct LogVisitor<M> {
     intervals: Vec<IntervalBuilder<M>>,
     /// Intervals currently open, as a LIFO stack.
     active:    Vec<IntervalBuilder<M>>,
+    /// Metadata providing information about the whole profile.
+    headers:   Headers,
 }
 
 impl<M> Default for LogVisitor<M> {
@@ -259,6 +261,7 @@ impl<M> Default for LogVisitor<M> {
             active:    vec![root_interval],
             builders:  Default::default(),
             order:     Default::default(),
+            headers:   Default::default(),
         }
     }
 }
@@ -285,6 +288,7 @@ impl<M> LogVisitor<M> {
                     visitor.visit_resume(log_pos, id.into(), timestamp),
                 profiler::internal::Event::Metadata(metadata) =>
                     visitor.visit_metadata(log_pos, metadata),
+                profiler::internal::Event::Header(header) => visitor.visit_header(header),
             };
             result.map_err(|error| crate::EventError { log_pos: i, error })?;
             event_count += 1;
@@ -408,6 +412,13 @@ impl<M> LogVisitor<M> {
         self.active.last_mut().unwrap().metadata.push(crate::Metadata { mark, data });
         Ok(())
     }
+
+    fn visit_header(&mut self, header: profiler::internal::Header) -> Result<(), DataError> {
+        match header {
+            Header::TimeOffset(offset) => self.headers.time_offset = Some(offset),
+        }
+        Ok(())
+    }
 }
 
 
@@ -460,6 +471,13 @@ impl<M> LogVisitor<M> {
     }
 }
 
+
+// === Headers ===
+
+#[derive(Clone, Debug, Default)]
+struct Headers {
+    time_offset: Option<profiler::TimeOffset>,
+}
 
 
 // ======================

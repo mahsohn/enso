@@ -1121,6 +1121,7 @@ dependencies = [
 name = "enso-profiler"
 version = "0.1.0"
 dependencies = [
+ "derivative",
  "enso-profiler-macros",
  "enso-web",
  "futures 0.3.21",
@@ -1133,6 +1134,7 @@ dependencies = [
 name = "enso-profiler-data"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "enso-prelude",
  "enso-profiler",
  "futures 0.3.21",

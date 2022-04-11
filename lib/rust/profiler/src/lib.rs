@@ -153,6 +153,7 @@
 // === Export ===
 // ==============
 
+pub mod build;
 pub mod internal;
 pub mod log;
 
@@ -208,6 +209,21 @@ impl<T: 'static + serde::Serialize> MetadataLogger<T> {
         EventLog.metadata(self.id)
     }
 }
+
+
+
+// ==================
+// === TimeOffset ===
+// ==================
+
+/// Value in milliseconds that, if added to this profile's [`Timestamp`]s, produces an offset
+/// from the unix epoch.
+///
+/// For web `performance.now` timestamps, this is the system time of the *time origin*.
+///
+/// For timestamps that are already in system time, this is 0.
+#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize)]
+pub struct TimeOffset(pub f64);
 
 
 
@@ -553,6 +569,7 @@ mod tests {
                 profiler::Event::Pause { .. } => e,
                 profiler::Event::Resume { .. } => e,
                 profiler::Event::Metadata(_) => e,
+                profiler::Event::Header(profiler::Header::TimeOffset(_)) => e,
             }
         }
         const TEST_LOG: &str = "[\
@@ -562,6 +579,7 @@ mod tests {
             {\"Pause\":{\"id\":1,\"timestamp\":1}},\
             {\"Resume\":{\"id\":1,\"timestamp\":1}},\
             {\"Metadata\":{\"timestamp\":1,\"data\":\"Unknown\"}}\
+            {\"Header\":{\"TimeOffset\":0.0}}\
             ]";
         let events: Vec<profiler::Event<OpaqueMetadata, String>> =
             serde_json::from_str(TEST_LOG).unwrap();

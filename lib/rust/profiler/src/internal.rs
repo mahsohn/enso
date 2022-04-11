@@ -5,7 +5,7 @@
 //! - They are used by [the macros](../index.html#macros) that provide the public interface to
 //!   `profiler`.
 
-use crate::log;
+use crate::{build, log};
 
 use std::fmt;
 use std::num;
@@ -41,38 +41,28 @@ pub fn take_log() -> String {
     let metadata_names: Vec<_> = metadatas.iter().map(|metadata| metadata.name()).collect();
     let mut metadata_entries: Vec<_> =
         metadatas.into_iter().map(|metadata| metadata.take_all()).collect();
-    let events: Vec<_> = events
-        .into_iter()
-        .map(|event| {
-            event.map_metadata(|external| {
-                let id = external.type_id as usize;
-                let name = metadata_names[id];
-                let data = metadata_entries[id].next().unwrap();
-                let data = serde_json::value::to_raw_value(&data).unwrap();
-                Variant { name, t: data }
-            })
-        })
-        .collect();
-    serde_json::to_string(&events).unwrap()
-}
-
-
-// === Variant ===
-
-/// Wrapper for serializing an object as if it were a particular variant of some unspecified enum.
-///
-/// This allows serializing instances of one variant of an enum without knowledge of the other
-/// variants.
-struct Variant<T> {
-    name: &'static str,
-    t:    T,
-}
-
-impl<T: serde::Serialize> serde::Serialize for Variant<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
-        serializer.serialize_newtype_variant("", 0, self.name, &self.t)
+    let mut to_inband = move |ExternalMetadata { type_id }| {
+        let id = type_id as usize;
+        let name = metadata_names[id];
+        let data = metadata_entries[id].next().unwrap();
+        let data = serde_json::value::to_raw_value(&data).unwrap();
+        (name, data)
+    };
+    let mut profile = build::ProfileBuilder::new();
+    let time_offset = Timestamp::time_offset().into_ms();
+    profile.metadata(Timestamp::time_origin(), "profiler.TimeOffset", time_offset);
+    // TODO[kw]: don't hard-code this here.
+    profile.metadata(Timestamp::time_origin(), "enso.Process1", "Ide");
+    for event in events {
+        match event {
+            Event::Metadata(Timestamped { timestamp, data }) => {
+                let (name, data) = to_inband(data);
+                profile.metadata(timestamp, name, data)
+            }
+            event => profile.raw_nonmetadata_event(event),
+        }
     }
+    profile.to_string()
 }
 
 
@@ -209,12 +199,14 @@ pub enum Event<Metadata, LabelStorage> {
     },
     /// Metadata: wrapper with dependency-injected contents.
     Metadata(Timestamped<Metadata>),
+    /// Header: information applicable to the whole profile.
+    Header(Header),
 }
 
 impl<Metadata, LabelStorage> Event<Metadata, LabelStorage> {
     /// Produce a new event that may have a different metadata type, with metadata values
     /// converted by the given function.
-    fn map_metadata<F, Metadata1>(self, mut f: F) -> Event<Metadata1, LabelStorage>
+    pub fn map_metadata<F, Metadata1>(self, mut f: F) -> Event<Metadata1, LabelStorage>
     where F: FnMut(Metadata) -> Metadata1 {
         match self {
             // metadata => f(metadata)
@@ -226,8 +218,22 @@ impl<Metadata, LabelStorage> Event<Metadata, LabelStorage> {
             Event::End { id, timestamp } => Event::End { id, timestamp },
             Event::Pause { id, timestamp } => Event::Pause { id, timestamp },
             Event::Resume { id, timestamp } => Event::Resume { id, timestamp },
+            Event::Header(header) => Event::Header(header),
         }
     }
+}
+
+
+
+// ==============
+// === Header ===
+// ==============
+
+/// Optional information applicable to an entire profile.
+#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize)]
+pub enum Header {
+    /// Offset of profile timestamps from system time.
+    TimeOffset(crate::TimeOffset),
 }
 
 
@@ -306,6 +312,11 @@ impl Timestamp {
     pub fn into_ms(self) -> f64 {
         (self.0.get() - TS_OFFSET) as f64 / 10.0
     }
+
+    /// Return the offset of the time origin from a system timestamp.
+    pub fn time_offset() -> Self {
+        Self::from_ms(time_origin())
+    }
 }
 
 impl Default for Timestamp {
@@ -334,6 +345,12 @@ fn now() -> f64 {
         timestamp.set(now + 0.1);
         now
     })
+}
+
+fn time_origin() -> f64 {
+    use enso_web as web;
+    use enso_web::traits::*;
+    web::window.performance_or_panic().time_origin()
 }
 
 

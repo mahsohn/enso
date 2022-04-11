@@ -106,8 +106,6 @@ use enso_profiler as profiler;
 use std::error;
 use std::fmt;
 
-
-
 // ==============
 // === Export ===
 // ==============
@@ -199,11 +197,28 @@ impl<E: error::Error> error::Error for EventError<E> {
 
 
 
+// ==================================
+// === parse_multiprocess_profile ===
+// ==================================
+
+pub fn parse_multiprocess_profile<M: serde::de::DeserializeOwned>(
+    data: &str,
+) -> impl Iterator<Item = Result<Profile<M>, Error<M>>> + '_ {
+    serde_json::Deserializer::from_str(data).into_iter::<Box<serde_json::value::RawValue>>().map(
+        |profile| {
+            let raw_parse_error = "Cannot parse input as sequence of JSON values!";
+            profile.expect(raw_parse_error).get().parse()
+        },
+    )
+}
+
+
+
 // ===============
 // === Profile ===
 // ===============
 
-/// All the profiling information captured during one run of the application.
+/// All the profiling information captured by one process during one run of the application.
 ///
 /// This is parameterized by a type that determines how metadata is interpreted. The type must be
 /// an enum, with a variant for each type of metadata that is handled. Each variant's name and type
@@ -217,6 +232,8 @@ pub struct Profile<M> {
     /// The hierarchy of intervals. A parent-child relationship indicates that the child is
     /// contained within the parent.
     pub intervals:    Vec<ActiveInterval<M>>,
+    /// Offset of [`Mark`]s in this profile from system time, if known.
+    pub time_offset:  Option<profiler::TimeOffset>,
 }
 
 impl<M> Profile<M> {
@@ -228,6 +245,16 @@ impl<M> Profile<M> {
     /// A virtual interval containing the top-level intervals as children.
     pub fn root_interval(&self) -> &ActiveInterval<M> {
         self.intervals.last().unwrap()
+    }
+
+    /// Id of a virtual measurement containing the top-level measurements as children.
+    pub fn root_measurement_id(&self) -> MeasurementId {
+        MeasurementId(self.measurements.len() - 1)
+    }
+
+    /// Id of a virtual interval containing the top-level intervals as children.
+    pub fn root_interval_id(&self) -> IntervalId {
+        IntervalId(self.intervals.len() - 1)
     }
 
     /// Iterate over only the metadata stored in the profile.
@@ -336,12 +363,16 @@ pub enum OpaqueMetadata {
 // ============
 
 /// A timestamp that can be used for distinguishing event order.
+///
+/// Note that while an [`Ord`] implementation is provided for convenience (e.g. for use with
+/// data structures that require it), the results of comparisons should only be considered
+/// meaningful when comparing [`Mark`]s that were recorded by the same process.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct Mark {
-    /// Sequence number of the mark. Used to resolve timestamp collisions.
-    seq:  Seq,
     /// Time of the mark.
     time: profiler::internal::Timestamp,
+    /// Sequence number of the mark. Used to resolve timestamp collisions.
+    seq:  Seq,
 }
 
 impl Mark {
@@ -358,7 +389,7 @@ impl Mark {
 
 // === Seq ===
 
-/// A value that can be used to compare the order of events.
+/// A value that can be used to compare the order of events within a process.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub(crate) struct Seq(u32);
 
