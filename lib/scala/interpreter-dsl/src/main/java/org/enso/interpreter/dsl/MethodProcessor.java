@@ -273,35 +273,6 @@ public class MethodProcessor extends AbstractProcessor {
 
   private void generateArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String argReference = argsArray + "[" + arg.getPosition() + "]";
-    if (arg.shouldCheckErrors()) {
-      String condProfile = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
-      out.println(
-          "    if ("
-              + condProfile
-              + ".profile(TypesGen.isDataflowError("
-              + argReference
-              + "))) {\n"
-              + "      return new Stateful(state, "
-              + argReference
-              + ");\n"
-              + "    }");
-    }
-    if (!arg.isThis()) {
-      String branchProfile = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
-      out.println(
-          "    if (TypesGen.isPanicSentinel("
-              + argReference
-              + ")) {\n"
-              + "      "
-              + branchProfile
-              + ".enter();\n"
-              + "      throw TypesGen.asPanicSentinel("
-              + argReference
-              + ");\n"
-              + "    }");
-    }
-
     if (!arg.requiresCast()) {
       generateUncastedArgumentRead(out, arg, argsArray);
     } else if (arg.isThis()) {
@@ -311,8 +282,47 @@ public class MethodProcessor extends AbstractProcessor {
     }
   }
 
+  private void generateErrorCheck(PrintWriter out, ArgumentDefinition arg, String argsArray) {
+    String argReference = argsArray + "[" + arg.getPosition() + "]";
+    String condProfile = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
+    out.println(
+        "    if ("
+            + condProfile
+            + ".profile(TypesGen.isDataflowError("
+            + argReference
+            + "))) {\n"
+            + "      return new Stateful(state, "
+            + argReference
+            + ");\n"
+            + "    }");
+  }
+
+  private void generatePanicSentinelCheck(
+      PrintWriter out, ArgumentDefinition arg, String argsArray) {
+    String argReference = argsArray + "[" + arg.getPosition() + "]";
+    String branchProfile = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
+    out.println(
+        "    if (TypesGen.isPanicSentinel("
+            + argReference
+            + ")) {\n"
+            + "      "
+            + branchProfile
+            + ".enter();\n"
+            + "      throw TypesGen.asPanicSentinel("
+            + argReference
+            + ");\n"
+            + "    }");
+  }
+
   private void generateUncastedArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
+    if (arg.shouldCheckErrors()) {
+      generateErrorCheck(out, arg, argsArray);
+    }
+    if (!arg.isThis()) {
+      generatePanicSentinelCheck(out, arg, argsArray);
+    }
+
     String varName = mkArgumentInternalVarName(arg);
     out.println(
         "    "
@@ -353,6 +363,14 @@ public class MethodProcessor extends AbstractProcessor {
     out.println(
         "      " + varName + " = " + castName + "(" + argsArray + "[" + arg.getPosition() + "]);");
     out.println("    } catch (UnexpectedResultException e) {");
+
+    if (arg.shouldCheckErrors()) {
+      generateErrorCheck(out, arg, argsArray);
+    }
+    if (!arg.isThis()) {
+      generatePanicSentinelCheck(out, arg, argsArray);
+    }
+
     out.println("      var builtins = Context.get(this).getBuiltins();");
     out.println(
         "      var expected = builtins.fromTypeSystem(TypesGen.getName(arguments["
