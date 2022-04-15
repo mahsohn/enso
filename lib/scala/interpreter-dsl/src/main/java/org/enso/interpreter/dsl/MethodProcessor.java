@@ -268,8 +268,7 @@ public class MethodProcessor extends AbstractProcessor {
 
   private void generateArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    boolean is_self_reference = arg.getName().equals("this") && arg.getPosition() == 0;
-    if (!arg.acceptsError() && !is_self_reference) {
+    if (!arg.acceptsError() && !arg.isThis()) {
       String argReference = argsArray + "[" + arg.getPosition() + "]";
       String condProfile = mkArgumentInternalVarName(arg) + "ConditionProfile";
       out.println(
@@ -298,7 +297,7 @@ public class MethodProcessor extends AbstractProcessor {
 
     if (!arg.requiresCast()) {
       generateUncastedArgumentRead(out, arg, argsArray);
-    } else if (arg.getName().equals("this") && arg.getPosition() == 0) {
+    } else if (arg.isThis()) {
       generateUncheckedArgumentRead(out, arg, argsArray);
     } else {
       generateCheckedArgumentRead(out, arg, argsArray);
