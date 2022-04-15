@@ -22,6 +22,7 @@ import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import org.enso.interpreter.dsl.model.MethodDefinition;
+import org.enso.interpreter.dsl.model.MethodDefinition.ArgumentDefinition;
 
 /** The processor used to generate code from the {@link BuiltinMethod} annotation. */
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinMethod")
@@ -122,19 +123,20 @@ public class MethodProcessor extends AbstractProcessor {
       out.println();
 
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
-        if (!arg.isState() && !arg.isFrame() && !arg.isCallerInfo()) {
-          String condName = mkArgumentInternalVarName(arg) + "ConditionProfile";
-          String branchName = mkArgumentInternalVarName(arg) + "BranchProfile";
+        if (arg.shouldCheckErrors()) {
+          String condName = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
+          String branchName = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
           out.println(
               "  private final ConditionProfile "
                   + condName
                   + " = ConditionProfile.createCountingProfile();");
           out.println("  private final BranchProfile " + branchName + " = BranchProfile.create();");
-          if (!arg.isThis() && !arg.acceptsWarning()) {
-            String warningName = mkArgumentInternalVarName(arg) + "WarningProfile";
-            out.println(
-                "  private final BranchProfile " + warningName + " = BranchProfile.create();");
-          }
+        }
+
+        if (arg.shouldCheckWarnings()) {
+          String warningName = mkArgumentInternalVarName(arg) + WARNING_PROFILE;
+          out.println(
+              "  private final BranchProfile " + warningName + " = BranchProfile.create();");
         }
       }
       out.println("  private final BranchProfile anyWarningsProfile = BranchProfile.create();");
@@ -268,9 +270,9 @@ public class MethodProcessor extends AbstractProcessor {
 
   private void generateArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    if (!arg.acceptsError() && !arg.isThis()) {
+    if (arg.shouldCheckErrors()) {
       String argReference = argsArray + "[" + arg.getPosition() + "]";
-      String condProfile = mkArgumentInternalVarName(arg) + "ConditionProfile";
+      String condProfile = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
       out.println(
           "    if ("
               + condProfile
@@ -281,7 +283,7 @@ public class MethodProcessor extends AbstractProcessor {
               + argReference
               + ");\n"
               + "    }");
-      String branchProfile = mkArgumentInternalVarName(arg) + "BranchProfile";
+      String branchProfile = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
       out.println(
           "    else if (TypesGen.isPanicSentinel("
               + argReference
@@ -364,9 +366,7 @@ public class MethodProcessor extends AbstractProcessor {
   private boolean generateWarningsCheck(
       PrintWriter out, List<MethodDefinition.ArgumentDefinition> arguments, String argumentsArray) {
     List<MethodDefinition.ArgumentDefinition> argsToCheck =
-        arguments.stream()
-            .filter(arg -> !arg.acceptsWarning() && !arg.isThis())
-            .collect(Collectors.toList());
+        arguments.stream().filter(ArgumentDefinition::shouldCheckWarnings).collect(Collectors.toList());
     if (argsToCheck.isEmpty()) {
       return false;
     } else {
@@ -377,7 +377,7 @@ public class MethodProcessor extends AbstractProcessor {
             "    if ("
                 + arrayRead(argumentsArray, arg.getPosition())
                 + " instanceof WithWarnings) {");
-        out.println("      " + mkArgumentInternalVarName(arg) + "WarningProfile.enter();");
+        out.println("      " + mkArgumentInternalVarName(arg) + WARNING_PROFILE + ".enter();");
         out.println("      anyWarnings = true;");
         out.println(
             "      WithWarnings withWarnings = (WithWarnings) "
@@ -410,4 +410,8 @@ public class MethodProcessor extends AbstractProcessor {
   private String capitalize(String name) {
     return name.substring(0, 1).toUpperCase() + name.substring(1);
   }
+
+  private static final String DATAFLOW_ERROR_PROFILE = "IsDataflowErrorConditionProfile";
+  private static final String PANIC_SENTINEL_PROFILE = "PanicSentinelBranchProfile";
+  private static final String WARNING_PROFILE = "WarningProfile";
 }
