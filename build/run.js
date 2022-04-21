@@ -297,7 +297,7 @@ commands['integration-test'].rust = async function (argv) {
         process.env.WASM_BINDGEN_TEST_TIMEOUT = 300
         let args = [
             'test',
-            '--headless',
+//            '--headless',
             '--chrome',
             'integration-test',
             '--profile=integration-test',

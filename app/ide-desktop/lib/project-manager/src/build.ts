@@ -48,7 +48,7 @@ function get_project_manager_url({ version, target }: BuildInfo): string {
     console.log('webpack target ' + target)
     let base_url: string = 'https://github.com/enso-org/'
     base_url += 'enso/releases/download/'
-    base_url += `enso-${version}/enso-project-manager-${version}`
+    base_url += `${version}/project-manager-bundle-${version}`
     let postfix
     if (target === 'linux') {
         postfix = `linux-amd64.tar.gz`
