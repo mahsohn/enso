@@ -224,7 +224,8 @@ impl WithProjectManager {
     pub async fn create_project(&self) -> FallibleResult<Uuid> {
         use project_manager::MissingComponentAction::Install;
         info!(self.logger, "Creating a new project named '{self.project_name}'.");
-        let version = Some(enso_config::engine_version_supported.to_owned());
+        // let version = Some(enso_config::engine_version_supported.to_owned());
+        let version = None;
         let name = &self.project_name;
         let response = self.project_manager.create_project(name, &None, &version, &Install);
         Ok(response.await?.project_id)
