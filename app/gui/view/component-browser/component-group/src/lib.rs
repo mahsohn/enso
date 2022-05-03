@@ -74,7 +74,7 @@ pub mod header_background {
         (style:Style, color:Vector4) {
             let sprite_width: Var<Pixels> = "input_size.x".into();
             let sprite_height: Var<Pixels> = "input_size.y".into();
-            let color = Rgba::red();
+            let color = Var::<Rgba>::from(color);
             // TODO[MC,WD]: We should use Plane here, but it has a bug - renders wrong color. See:
             //   https://github.com/enso-org/enso/pull/3373#discussion_r849054476
             let shape = Rect((&sprite_width, &sprite_height)).fill(color);
@@ -243,7 +243,6 @@ impl component::Model for Model {
         display_object.add_child(&entries);
 
         header.set_font(HEADER_FONT);
-        entries.set_label_layer2(app.display.default_scene.layers.label.clone_ref());
 
         Model { display_object, text_layer, header_layer, header_text_layer, header, header_text, background, header_background, entries }
     }
