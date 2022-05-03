@@ -28,6 +28,8 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::scene::layer::Layer;
+use ensogl_core::display::object::InstanceWithLayer;
 use ensogl_hardcoded_theme as theme;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_text_msdf_sys::run_once_initialized;
@@ -118,11 +120,14 @@ fn init(app: &Application) {
 
     // === Content ===
 
+    let layer = Layer::new_with_cam(app.logger.clone_ref(), &app.display.default_scene.layers.main.camera());
     let content = content::View::new(&logger);
-    scroll_area.content().add_child(&content);
+    layer.add_exclusive(&content);
     content.size.set(Vector2::new(100.0, 100.0));
     content.set_position_x(100.0);
     content.set_position_y(-100.0);
+    let display_object = InstanceWithLayer::new(content.display_object().clone_ref(), layer.clone_ref()); 
+    scroll_area.content().add_child(&*display_object);
     std::mem::forget(content);
 
 
