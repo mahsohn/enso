@@ -28,6 +28,7 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display;
 use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::display::object::InstanceWithLayer;
 use ensogl_hardcoded_theme as theme;
@@ -61,6 +62,22 @@ mod content {
     ensogl_core::define_shape_system! {
         (style:Style) {
             Circle(50.px()).fill(color::Rgb::new(1.0,0.0,0.0)).into()
+        }
+    }
+}
+mod green_circle {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            Circle(70.px()).fill(color::Rgba(0.0, 1.0, 0.0, 0.3)).into()
+        }
+    }
+}
+mod blue_circle {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            Circle(30.px()).fill(color::Rgba(0.0, 0.0, 1.0, 0.3)).into()
         }
     }
 }
@@ -120,6 +137,25 @@ fn init(app: &Application) {
 
     // === Content ===
 
+    //let layer = Layer::new(logger.clone_ref());
+    let green_circle = green_circle::View::new(&logger);
+    green_circle.size.set(Vector2(150.0, 150.0));
+    //layer.add_exclusive(&green_circle);
+    //let green = display::object::Instance::new(logger.clone_ref());
+    //green.add_child(&green_circle);
+    let green = green_circle;
+    //let green = InstanceWithLayer::new(green, layer);
+    scroll_area.content().add_child(&green);
+
+    let blue_circle = blue_circle::View::new(&logger);
+    blue_circle.size.set(Vector2(150.0, 150.0));
+    let blue = blue_circle;
+    //scroll_area.content().add_child(&blue);
+    green.add_child(&blue);
+    blue.set_position_xy(Vector2(120.0, -100.0));
+
+    std::mem::forget(green);
+    std::mem::forget(blue);
     let content = content::View::new(&logger);
     scroll_area.content().add_child(&content);
     content.size.set(Vector2::new(100.0, 100.0));
