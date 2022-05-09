@@ -24,7 +24,6 @@ use ensogl_list_view as list_view;
 use ensogl_text_msdf_sys::run_once_initialized;
 use ide_view_component_group as component_group;
 use ensogl_scroll_area::ScrollArea;
-use ensogl_scrollbar::Scrollbar;
 use enso_frp as frp;
 
 
@@ -86,6 +85,16 @@ mod background {
     }
 }
 
+mod green_circle {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            Circle(70.px()).fill(color::Rgba::transparent()).into()
+        }
+    }
+}
+
+
 
 // ========================
 // === Init Application ===
@@ -107,13 +116,17 @@ fn init(app: &Application) {
         "data input".into(),
     ]);
 
-    let scroll_bar = Scrollbar::new(app);
-    scroll_bar.set_length(400.0);
-    scroll_bar.set_max(400.0);
-    scroll_bar.set_thumb_size(20.0);
-    scroll_bar.set_rotation_z(-90.0_f32.to_radians());
-    scroll_bar.set_position_x(-10.0);
-    app.display.add_child(&scroll_bar);
+    let scroll_area = ScrollArea::new(app);
+    scroll_area.set_position_xy(Vector2(-75.0, 100.0));
+    scroll_area.resize(Vector2(250.0, 400.0));
+    scroll_area.set_content_width(250.0);
+    scroll_area.set_content_height(1000.0);
+    app.display.add_child(&scroll_area);
+
+    let green_circle = green_circle::View::new(&app.logger);
+    green_circle.size.set(Vector2(150.0, 150.0));
+    green_circle.set_position_xy(Vector2(200.0, -150.0));
+    scroll_area.content().add_child(&green_circle);
 
     let component_group = app.new_view::<component_group::View>();
     let provider = list_view::entry::AnyModelProvider::new(mock_entries);
@@ -121,17 +134,17 @@ fn init(app: &Application) {
     component_group.set_header(group_name.to_string());
     component_group.set_entries(provider);
     component_group.set_size(Vector2(150.0, 200.0));
-    component_group.set_position_xy(Vector2(75.0, 0.0));
+    component_group.set_position_xy(Vector2(75.0, -100.0));
     component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
-    app.display.add_child(&component_group);
+    scroll_area.content().add_child(&component_group);
 
     let network = frp::Network::new("network");
     frp::extend!{ network
-        eval scroll_bar.output.thumb_position ((y) component_group.set_viewport_size(*y));
-        eval scroll_bar.output.thumb_position ((y) component_group.set_position_y(*y));
+        eval scroll_area.output.scroll_position_y ((y) component_group.set_viewport_size(*y));
     }
 
     std::mem::forget(component_group);
-    std::mem::forget(scroll_bar);
+    std::mem::forget(scroll_area);
+    std::mem::forget(green_circle);
     std::mem::forget(network);
 }
