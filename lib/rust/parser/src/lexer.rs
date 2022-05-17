@@ -101,7 +101,7 @@ impl<'s> Lexer<'s> {
     pub fn new(input: &'s str) -> Self {
         let iterator = input.char_indices();
         let capacity = input.len() / AVERAGE_TOKEN_LEN;
-        let output = Vec::with_capacity(capacity * mem::size_of::<Token<'s>>());
+        let output = Vec::with_capacity(capacity);
         let state = default();
         Self { input, iterator, output, state }.init()
     }
